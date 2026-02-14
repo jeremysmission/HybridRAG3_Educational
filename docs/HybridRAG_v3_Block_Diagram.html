@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HybridRAG v3 — Block Diagram</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #f4f5f7;
+    font-family: 'IBM Plex Sans', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px;
+    min-height: 100vh;
+  }
+
+  .page-title {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: #1a2332;
+    margin-bottom: 4px;
+  }
+  .page-subtitle {
+    font-size: 12px;
+    color: #5a6a7a;
+    font-weight: 400;
+    letter-spacing: 0.5px;
+    margin-bottom: 24px;
+  }
+
+  .diagram-container {
+    background: #ffffff;
+    border: 2px solid #1a2332;
+    border-radius: 2px;
+    padding: 0;
+    max-width: 1100px;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .diagram-header {
+    background: #1a2332;
+    color: #ffffff;
+    padding: 14px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .diagram-header h1 {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+  .diagram-header .meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: #8899aa;
+  }
+
+  svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .legend {
+    display: flex;
+    gap: 24px;
+    padding: 12px 24px;
+    background: #f8f9fb;
+    border-top: 1px solid #d0d5dd;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: #3a4a5a;
+    font-weight: 500;
+  }
+  .legend-swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+    border: 1.5px solid rgba(0,0,0,0.15);
+  }
+
+  .footer-note {
+    padding: 10px 24px;
+    font-size: 10px;
+    color: #7a8a9a;
+    border-top: 1px solid #e8eaed;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-title">HybridRAG v3 — System Block Diagram</div>
+<div class="page-subtitle">Two-Phase Pipeline: Indexing (Offline, $0) → Query-Time RAG (Firewalled GPT-3.5 Turbo)</div>
+
+<div class="diagram-container">
+  <div class="diagram-header">
+    <h1>FUNCTIONAL BLOCK DIAGRAM</h1>
+    <span class="meta">UNrestricted · FEB 2026 · REV A</span>
+  </div>
+
+  <svg viewBox="0 0 1060 820" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <!-- Arrowhead -->
+      <marker id="arrow" viewBox="0 0 10 7" refX="9" refY="3.5"
+        markerWidth="9" markerHeight="7" orient="auto-start-auto">
+        <polygon points="0 0, 10 3.5, 0 7" fill="#1a2332"/>
+      </marker>
+      <marker id="arrow-blue" viewBox="0 0 10 7" refX="9" refY="3.5"
+        markerWidth="9" markerHeight="7" orient="auto-start-auto">
+        <polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/>
+      </marker>
+      <marker id="arrow-green" viewBox="0 0 10 7" refX="9" refY="3.5"
+        markerWidth="9" markerHeight="7" orient="auto-start-auto">
+        <polygon points="0 0, 10 3.5, 0 7" fill="#16a34a"/>
+      </marker>
+
+      <!-- Block styles -->
+      <filter id="shadow" x="-2%" y="-2%" width="104%" height="108%">
+        <feDropShadow dx="1" dy="2" stdDeviation="2" flood-opacity="0.08"/>
+      </filter>
+    </defs>
+
+    <!-- ============================================================ -->
+    <!-- SECURITY BOUNDARY -->
+    <!-- ============================================================ -->
+    <rect x="20" y="15" width="1020" height="790" rx="4"
+      fill="none" stroke="#1a2332" stroke-width="2.5" stroke-dasharray="12,6"/>
+    <rect x="20" y="15" width="320" height="28" rx="4" fill="#1a2332"/>
+    <text x="32" y="34" font-family="IBM Plex Mono, monospace" font-size="11"
+      fill="#fff" font-weight="600" letter-spacing="1.5">SECURE CORPORATE NETWORK</text>
+
+    <!-- ============================================================ -->
+    <!-- PHASE 1 REGION -->
+    <!-- ============================================================ -->
+    <rect x="40" y="58" width="480" height="732" rx="3"
+      fill="#f0fdf4" stroke="#86efac" stroke-width="1.5"/>
+    <text x="56" y="80" font-family="IBM Plex Sans, sans-serif" font-size="13"
+      fill="#166534" font-weight="700" letter-spacing="1">PHASE 1 — INDEXING</text>
+    <text x="56" y="95" font-family="IBM Plex Mono, monospace" font-size="10"
+      fill="#16a34a" font-weight="500">Runs locally · Cost: $0 · No internet required</text>
+
+    <!-- NETWORK DRIVE -->
+    <rect x="120" y="115" width="320" height="70" rx="4"
+      fill="#1e3a5f" stroke="#1a2332" stroke-width="2" filter="url(#shadow)"/>
+    <text x="280" y="146" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="14" fill="#fff" font-weight="700">NETWORK DRIVE</text>
+    <text x="280" y="163" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="10" fill="#93c5fd">\\server\program\*.*</text>
+    <text x="280" y="176" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#bfdbfe">PDFs · DOCX · TXT · HTML · Engineering Data</text>
+
+    <!-- Arrow down -->
+    <line x1="280" y1="185" x2="280" y2="210" stroke="#1a2332" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- FILE PARSERS -->
+    <rect x="160" y="212" width="240" height="52" rx="4"
+      fill="#ffffff" stroke="#1a2332" stroke-width="1.5" filter="url(#shadow)"/>
+    <text x="280" y="236" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="12" fill="#1a2332" font-weight="600">FILE PARSER REGISTRY</text>
+    <text x="280" y="253" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="9" fill="#5a6a7a">pdfminer · python-docx · pdfplumber · lxml</text>
+
+    <!-- Arrow down -->
+    <line x1="280" y1="264" x2="280" y2="289" stroke="#1a2332" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- CHUNKER -->
+    <rect x="160" y="291" width="240" height="52" rx="4"
+      fill="#ffffff" stroke="#1a2332" stroke-width="1.5" filter="url(#shadow)"/>
+    <text x="280" y="315" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="12" fill="#1a2332" font-weight="600">CHUNKER</text>
+    <text x="280" y="332" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="9" fill="#5a6a7a">1200 chars · 200 overlap · heading prepend</text>
+
+    <!-- Arrow down -->
+    <line x1="280" y1="343" x2="280" y2="368" stroke="#1a2332" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- LLAMA 3 / OLLAMA -->
+    <rect x="120" y="370" width="320" height="64" rx="4"
+      fill="#16a34a" stroke="#166534" stroke-width="2" filter="url(#shadow)"/>
+    <text x="280" y="396" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="14" fill="#fff" font-weight="700">LLAMA 3 via OLLAMA</text>
+    <text x="280" y="413" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="10" fill="#bbf7d0">LOCAL · $0 · No API · No Internet</text>
+    <text x="280" y="427" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#dcfce7">Embedding: all-MiniLM-L6-v2 (384-dim, CPU)</text>
+
+    <!-- Two arrows splitting to storage -->
+    <line x1="220" y1="434" x2="170" y2="475" stroke="#16a34a" stroke-width="2" marker-end="url(#arrow-green)"/>
+    <line x1="340" y1="434" x2="390" y2="475" stroke="#16a34a" stroke-width="2" marker-end="url(#arrow-green)"/>
+
+    <!-- SQLITE -->
+    <rect x="72" y="478" width="200" height="80" rx="4"
+      fill="#fff7ed" stroke="#f97316" stroke-width="1.5" filter="url(#shadow)"/>
+    <!-- Database icon shape -->
+    <ellipse cx="172" cy="498" rx="16" ry="6" fill="none" stroke="#f97316" stroke-width="1.2"/>
+    <line x1="156" y1="498" x2="156" y2="512" stroke="#f97316" stroke-width="1.2"/>
+    <line x1="188" y1="498" x2="188" y2="512" stroke="#f97316" stroke-width="1.2"/>
+    <ellipse cx="172" cy="512" rx="16" ry="6" fill="none" stroke="#f97316" stroke-width="1.2"/>
+    <text x="172" y="534" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="12" fill="#1a2332" font-weight="600">SQLite + FTS5</text>
+    <text x="172" y="548" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="9" fill="#5a6a7a">Chunks · Metadata · BM25</text>
+
+    <!-- MEMMAP -->
+    <rect x="288" y="478" width="200" height="80" rx="4"
+      fill="#eff6ff" stroke="#2563eb" stroke-width="1.5" filter="url(#shadow)"/>
+    <text x="388" y="510" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="12" fill="#1a2332" font-weight="600">NumPy Memmap</text>
+    <text x="388" y="527" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="9" fill="#5a6a7a">float16 vectors · 384-dim</text>
+    <text x="388" y="542" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="9" fill="#5a6a7a">Disk-backed · RAM-safe</text>
+
+    <!-- STORED INDEX LABEL -->
+    <text x="280" y="584" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="10" fill="#166534" font-weight="600">▲ LOCAL INDEX — PERSISTS ON DISK ▲</text>
+
+    <!-- ============================================================ -->
+    <!-- PHASE 2 REGION -->
+    <!-- ============================================================ -->
+    <rect x="540" y="58" width="480" height="732" rx="3"
+      fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+    <text x="556" y="80" font-family="IBM Plex Sans, sans-serif" font-size="13"
+      fill="#1e40af" font-weight="700" letter-spacing="1">PHASE 2 — QUERY-TIME RAG</text>
+    <text x="556" y="95" font-family="IBM Plex Mono, monospace" font-size="10"
+      fill="#2563eb" font-weight="500">Per question · Cost: ~$0.002/query · Firewalled API</text>
+
+    <!-- USER QUESTION -->
+    <rect x="660" y="115" width="240" height="52" rx="24"
+      fill="#1a2332" stroke="#0f172a" stroke-width="2" filter="url(#shadow)"/>
+    <text x="780" y="140" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="13" fill="#fff" font-weight="600">USER QUESTION</text>
+    <text x="780" y="156" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="9" fill="#94a3b8">Plain English query</text>
+
+    <!-- Arrow down -->
+    <line x1="780" y1="167" x2="780" y2="195" stroke="#1a2332" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- HYBRID RETRIEVAL BOX -->
+    <rect x="580" y="197" width="420" height="260" rx="4"
+      fill="#f8fafc" stroke="#1a2332" stroke-width="2"/>
+    <text x="790" y="220" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="13" fill="#1a2332" font-weight="700">HYBRID RETRIEVAL ENGINE</text>
+    <text x="790" y="236" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="10" fill="#64748b">100% Local · $0 · Reads from local index</text>
+
+    <!-- Vector Search block -->
+    <rect x="600" y="250" width="180" height="88" rx="4"
+      fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+    <text x="690" y="272" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="11" fill="#1e40af" font-weight="700">VECTOR SEARCH</text>
+    <text x="690" y="289" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="9" fill="#3b82f6">Cosine similarity</text>
+    <text x="690" y="302" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="9" fill="#3b82f6">via memmap dot product</text>
+    <text x="690" y="320" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#64748b" font-style="italic">Semantic meaning</text>
+    <text x="690" y="332" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="8" fill="#94a3b8">"thermal" → "heat dissipation"</text>
+
+    <!-- BM25 Search block -->
+    <rect x="800" y="250" width="180" height="88" rx="4"
+      fill="#fff7ed" stroke="#f97316" stroke-width="1.5"/>
+    <text x="890" y="272" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="11" fill="#c2410c" font-weight="700">BM25 KEYWORD</text>
+    <text x="890" y="289" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="9" fill="#ea580c">SQLite FTS5</text>
+    <text x="890" y="302" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="9" fill="#ea580c">OR-logic tokenized</text>
+    <text x="890" y="320" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#64748b" font-style="italic">Exact terms</text>
+    <text x="890" y="332" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="8" fill="#94a3b8">P/N 7842-001, industry standardH</text>
+
+    <!-- Arrows into RRF -->
+    <line x1="690" y1="338" x2="740" y2="370" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+    <line x1="890" y1="338" x2="840" y2="370" stroke="#f97316" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+    <!-- RRF FUSION -->
+    <rect x="700" y="372" width="180" height="60" rx="4"
+      fill="#faf5ff" stroke="#9333ea" stroke-width="2" filter="url(#shadow)"/>
+    <text x="790" y="396" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="12" fill="#6b21a8" font-weight="700">RRF FUSION (k=60)</text>
+    <text x="790" y="412" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="9" fill="#7c3aed">Cormack et al. · SIGIR 2009 [T1]</text>
+    <text x="790" y="425" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="8" fill="#a78bfa">Rank-based fusion · peer-reviewed</text>
+    <!-- end hybrid retrieval box -->
+
+    <!-- Arrow down from retrieval -->
+    <line x1="790" y1="457" x2="790" y2="487" stroke="#1a2332" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- CONTEXT BUILDER -->
+    <rect x="660" y="489" width="260" height="52" rx="4"
+      fill="#ffffff" stroke="#1a2332" stroke-width="1.5" filter="url(#shadow)"/>
+    <text x="790" y="513" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="12" fill="#1a2332" font-weight="600">CONTEXT BUILDER</text>
+    <text x="790" y="530" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="9" fill="#5a6a7a">Top-K chunks + source metadata + file paths</text>
+
+    <!-- Arrow down -->
+    <line x1="790" y1="541" x2="790" y2="571" stroke="#1a2332" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- GPT-3.5 TURBO -->
+    <rect x="620" y="573" width="340" height="80" rx="4"
+      fill="#dc2626" stroke="#991b1b" stroke-width="2" filter="url(#shadow)"/>
+    <text x="790" y="600" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="14" fill="#fff" font-weight="700">FIREWALLED GPT-3.5 TURBO</text>
+    <text x="790" y="617" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="10" fill="#fecaca">Company API · ~$0.002/query [P7]</text>
+    <text x="790" y="634" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#fca5a5">Receives ONLY curated context · Never touches network drive</text>
+    <text x="790" y="646" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#fca5a5">Generates answer ONLY · Does not index or search</text>
+
+    <!-- Arrow down -->
+    <line x1="790" y1="653" x2="790" y2="683" stroke="#1a2332" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- ANSWER OUTPUT -->
+    <rect x="620" y="685" width="340" height="80" rx="4"
+      fill="#f0fdf4" stroke="#16a34a" stroke-width="2" filter="url(#shadow)"/>
+    <text x="790" y="712" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="13" fill="#166534" font-weight="700">ANSWER + CITATIONS</text>
+    <text x="790" y="730" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#15803d">Grounded answer with file paths pointing to</text>
+    <text x="790" y="743" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#15803d">source documents on the NETWORK DRIVE</text>
+    <text x="790" y="758" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="8" fill="#4ade80">\\server\program\test_reports\TR-2024-0847.pdf</text>
+
+    <!-- ============================================================ -->
+    <!-- CROSS-PHASE CONNECTIONS -->
+    <!-- ============================================================ -->
+
+    <!-- Dashed line from SQLite to BM25 Search -->
+    <path d="M 272 518 L 480 518 Q 530 518 530 380 Q 530 290 600 290"
+      fill="none" stroke="#f97316" stroke-width="1.5" stroke-dasharray="6,4"
+      marker-end="url(#arrow)"/>
+    <text x="490" y="425" font-family="IBM Plex Mono, monospace" font-size="8"
+      fill="#ea580c" transform="rotate(-90,490,425)">reads FTS5 index</text>
+
+    <!-- Dashed line from Memmap to Vector Search -->
+    <path d="M 488 518 L 530 518 Q 560 518 560 330 Q 560 270 600 270"
+      fill="none" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="6,4"
+      marker-end="url(#arrow-blue)"/>
+    <text x="548" y="380" font-family="IBM Plex Mono, monospace" font-size="8"
+      fill="#2563eb" transform="rotate(-90,548,380)">reads vectors</text>
+
+    <!-- Dashed feedback arrow from Answer back up to Network Drive label -->
+    <path d="M 620 725 L 60 725 Q 50 725 50 600 L 50 150 Q 50 140 120 140"
+      fill="none" stroke="#16a34a" stroke-width="1.5" stroke-dasharray="8,4"
+      marker-end="url(#arrow-green)"/>
+    <text x="60" y="440" font-family="IBM Plex Mono, monospace" font-size="8"
+      fill="#16a34a" transform="rotate(-90,60,440)">Citations reference source files on network drive</text>
+
+    <!-- ============================================================ -->
+    <!-- AUDIT LOG -->
+    <!-- ============================================================ -->
+    <rect x="72" y="610" width="200" height="65" rx="4"
+      fill="#fefce8" stroke="#ca8a04" stroke-width="1.5" filter="url(#shadow)"/>
+    <text x="172" y="634" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="11" fill="#854d0e" font-weight="600">AUDIT LOG</text>
+    <text x="172" y="650" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="9" fill="#a16207">SQLite · run_id · timestamps</text>
+    <text x="172" y="664" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="9" fill="#a16207">query text · retrieved chunks</text>
+
+    <!-- Arrow from GPT to audit -->
+    <path d="M 620 620 L 510 620 Q 480 620 480 640 L 272 640"
+      fill="none" stroke="#ca8a04" stroke-width="1.2" stroke-dasharray="4,3"
+      marker-end="url(#arrow)"/>
+    <text x="440" y="612" font-family="IBM Plex Mono, monospace" font-size="8"
+      fill="#ca8a04">logs every query</text>
+
+    <!-- ============================================================ -->
+    <!-- COST CALLOUTS -->
+    <!-- ============================================================ -->
+    <rect x="72" y="700" width="438" height="72" rx="4"
+      fill="#1a2332" stroke="#0f172a" stroke-width="1.5"/>
+    <text x="291" y="722" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="12" fill="#fff" font-weight="700">COST SUMMARY</text>
+    <text x="291" y="740" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="10" fill="#86efac">Phase 1 (Indexing): $0 — Llama 3 local, no API, no internet</text>
+    <text x="291" y="756" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="10" fill="#93c5fd">Phase 2 (Query): ~$0.002/query — GPT-3.5 Turbo firewalled API</text>
+    <text x="291" y="768" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="9" fill="#fde68a">Team of 10, 20 queries/day = ~$6-$24/month</text>
+  </svg>
+
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#1e3a5f;"></div>
+      Data Source (Network Drive)
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#16a34a;"></div>
+      Free / Local Processing ($0)
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#ffffff; border-color:#1a2332;"></div>
+      Pipeline Components
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#9333ea;"></div>
+      Fusion Algorithm (RRF)
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#dc2626;"></div>
+      Paid API (~$0.002/query)
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#fefce8; border-color:#ca8a04;"></div>
+      Audit / Logging
+    </div>
+    <div class="legend-item">
+      <svg width="16" height="8"><line x1="0" y1="4" x2="16" y2="4" stroke="#1a2332" stroke-width="1.5" stroke-dasharray="4,3"/></svg>
+      Data flow (dashed = read)
+    </div>
+  </div>
+
+  <div class="footer-note">
+    REF: All cost figures sourced from vendor pricing pages — see References Index [P1]–[P8] · Architecture validated against Anthropic Contextual Retrieval [T2] · RRF per SIGIR 2009 [T1]
+  </div>
+</div>
+
+</body>
+</html>

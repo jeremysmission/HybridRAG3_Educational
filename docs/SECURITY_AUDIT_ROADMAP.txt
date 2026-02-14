@@ -1,0 +1,259 @@
+================================================================================
+SECURITY AUDIT ROADMAP -- FUTURE REFERENCE (DO NOT IMPLEMENT YET)
+================================================================================
+Created: 2026-02-11
+Status:  PLANNING DOCUMENT -- Implement after API mode is stable
+When:    Phase 4+ (after demo, after 10-user scale-up begins)
+================================================================================
+
+
+================================================================================
+SECTION 1: WHY THIS MATTERS FOR enterpriseS
+================================================================================
+
+  When security or compliance asks:
+    "Who asked the AI about radar calibration procedures last Thursday?"
+
+  With a subscription key only:
+    You CANNOT answer. The key identifies the application, not the user.
+
+  With proper audit logging:
+    You CAN answer: exact user, timestamp, query text, retrieved
+    documents, model response, and which model endpoint was used.
+
+  This is the difference between passing and failing an audit.
+
+
+================================================================================
+SECTION 2: SUBSCRIPTION KEYS vs BEARER TOKENS (QUICK REFERENCE)
+================================================================================
+
+  SUBSCRIPTION KEY (what HybridRAG uses now):
+    - A permanent secret string assigned to the application
+    - Sent with every request as an HTTP header
+    - Like a gym membership number -- it never changes
+    - Simple to set up, works fine for pilot/POC phase
+    - WEAKNESS: If leaked, attacker has access until key is manually revoked
+    - WEAKNESS: Cannot identify which USER made a request
+
+  BEARER TOKEN (what enterprises use):
+    - A temporary credential issued after the user logs in
+    - Expires after minutes or hours (must be refreshed)
+    - Like a hotel key card -- stops working after checkout
+    - More complex to set up (needs identity provider like Azure AD)
+    - STRENGTH: If leaked, expires automatically (limited damage)
+    - STRENGTH: Identifies the specific user, not just the app
+
+  CURRENT PLAN:
+    Phase 1 (NOW): Subscription key. Fine for pilot.
+    Phase 2 (POST-DEMO): Add user-level logging inside the app.
+    Phase 3 (SCALE-UP): Evaluate bearer token integration with
+                         corporate Azure AD / SSO.
+
+
+================================================================================
+SECTION 3: THREE ARCHITECTURE OPTIONS FOR 10 USERS
+================================================================================
+
+  OPTION A -- Shared API Key (simplest, weakest)
+  ------------------------------------------------
+  How it works:
+    One API key baked into the app config or stored on the server.
+    All 10 users share the same key. The API provider sees
+    "HybridRAG_App" for every request.
+
+  Pros:
+    - Easiest to build and operate
+    - No per-user setup needed
+    - Fine for controlled pilot environments
+
+  Cons:
+    - API logs cannot identify individual users
+    - If the key leaks, full compromise of all access
+    - Auditors will ask "who did what?" and you cannot answer
+
+  VERDICT: Good enough for pilot. Not for production.
+
+
+  OPTION B -- User Signs In, GUI Gets Bearer Token Automatically
+  ---------------------------------------------------------------
+  How it works:
+    Users open the GUI and click "Sign in" (Microsoft/Okta/SSO).
+    The GUI silently obtains a bearer token behind the scenes.
+    Users never see or paste any tokens. They just sign in like
+    they do for Outlook or Teams.
+
+  Pros:
+    - Best audit trail (user identity tied to every request)
+    - Easy for users (just a sign-in button)
+    - Tokens expire automatically
+    - Meets Zero Trust architecture requirements
+
+  Cons:
+    - Requires identity provider integration (Azure AD, Okta)
+    - More complex application code
+    - Needs token refresh logic
+
+  VERDICT: Enterprise-correct. Implement when ready for production.
+
+
+  OPTION C -- Users Authenticate to App, Backend Uses One API Key
+  ----------------------------------------------------------------
+  How it works:
+    Users sign into the RAG web/local app with credentials.
+    The app tracks their identity in its own session.
+    The BACKEND (not user machines) calls the model API using a
+    single subscription key or machine-level OAuth token.
+    Users never touch API credentials.
+
+  Pros:
+    - No API secrets on user machines
+    - Central control (rate limits, policies, logging, sanitization)
+    - Easy to rotate the one backend key without touching 10 desktops
+    - User audit happens inside the app, not at the API level
+
+  Cons:
+    - Requires a backend service (even a small FastAPI instance)
+    - Slightly more infrastructure to maintain
+
+  VERDICT: Best operational choice. Pairs perfectly with the FastAPI
+           scale-up plan already in the Master Game Plan.
+
+  RECOMMENDATION:
+    Start with Option A (current).
+    Build toward Option C when FastAPI service layer is added.
+    Consider Option B for full enterprise deployment later.
+
+
+================================================================================
+SECTION 4: AUDIT LOGGING REQUIREMENTS (MINIMUM SET)
+================================================================================
+
+  For each user interaction, log ALL of the following:
+
+  FIELD                       EXAMPLE                        WHY
+  --------------------------+-----------------------------+--------------------------
+  Request ID                 REQ-2026-02-11-143022-a7b3   Correlates GUI log to API
+  User                       DOMAIN\jrandall               Who asked
+  Machine name               WORKSTATION-04                 Where they asked from
+  Timestamp (with timezone)  2026-02-11T14:30:22-05:00     When they asked
+  Prompt (original)          "What does RF manual say..."   What they asked
+  Prompt (sanitized)         (PII removed version)          What actually hit the API
+  Retrieved documents        [rf_manual_v3.pdf, ch4]        What sources were found
+  Chunk IDs + scores         [chunk_247: 0.87, ...]         Retrieval quality proof
+  Model endpoint             azure/gpt-35-turbo             Which model answered
+  Response text              "According to section 4.2..."  What the AI said
+  Outcome                    success / fail                 Did it work
+  Latency (ms)               3847                           Performance tracking
+  Hash                       sha256 of this record          Tamper detection
+  Previous hash              sha256 of prior record         Chain integrity
+
+  REQUEST ID IS THE MOST IMPORTANT FIELD.
+  It appears in: GUI log, API request header, backend log.
+  This lets you prove "this GUI entry matches this API call."
+
+
+================================================================================
+SECTION 5: TAMPER-EVIDENT LOGGING (HASH CHAIN)
+================================================================================
+
+  THE PROBLEM:
+    If audit logs are stored as plain text files, someone could edit
+    or delete entries. An auditor would ask: "How do we know this log
+    hasn't been tampered with?"
+
+  THE SOLUTION -- HASH CHAINS:
+    For each log record, compute:
+      hash = SHA-256( timestamp + user + prompt + doc_ids + response + previous_hash )
+
+    Store that hash as a field in the log record.
+
+    If anyone edits any record, the hash no longer matches.
+    If anyone deletes a record, the chain breaks (record N+1 points
+    to a previous_hash that doesn't exist).
+
+    This is NOT blockchain. It is just a simple linked-hash technique
+    that has been standard in audit logging for decades.
+
+  IMPLEMENTATION COMPLEXITY: Low.
+    Python's hashlib.sha256() does this in 3 lines of code.
+    Add it to the flight recorder trace when we build that in Phase 3.
+
+
+================================================================================
+SECTION 6: WHERE TO STORE AUDIT LOGS
+================================================================================
+
+  BAD: Only on each user's desktop
+    - Users could delete their own logs
+    - Hard to aggregate across 10 machines
+    - No central view
+
+  BETTER: Central network share with restricted permissions
+    - Write-only access for the app (can append, cannot delete)
+    - Read access for auditors
+    - Daily rollup scripts that consolidate all machines
+
+  BEST: Logging system (Splunk, ELK, Azure Monitor)
+    - Automatic aggregation
+    - Search and query across all users
+    - Alerting on anomalies
+    - Retention policies
+
+  FOR NOW: Start by logging locally in the flight recorder traces.
+  When the FastAPI backend exists, centralize logs there.
+
+
+================================================================================
+SECTION 7: IMPLEMENTATION TIMELINE
+================================================================================
+
+  PHASE 1 (NOW): API works, single user, subscription key
+    - No audit logging needed yet
+    - Focus on making the pipeline work end-to-end
+
+  PHASE 2 (STABILIZATION): Add flight recorder
+    - Per-query JSON trace with all fields from Section 4
+    - Request ID generated per query
+    - Stored in traces/ directory with rotation
+    - This is already in the Master Game Plan (Session 4)
+
+  PHASE 3 (10-USER SCALE-UP): Add user identity + hash chain
+    - FastAPI backend tracks which user sent each request
+    - Hash chain added to trace records
+    - Central log storage on network share or logging system
+
+  PHASE 4 (ENTERPRISE): Bearer tokens + full audit pipeline
+    - Integrate with corporate Azure AD / SSO
+    - Bearer tokens for user authentication
+    - Backend uses machine-level credential for API calls
+    - Complete audit trail: user -> query -> docs -> response
+    - Meets enterprise compliance requirements
+
+
+================================================================================
+SECTION 8: KEY DECISIONS TO MAKE LATER (NOT NOW)
+================================================================================
+
+  1. Identity provider: Azure AD (likely, since you use Azure API)
+                        vs Okta vs custom
+
+  2. Log storage: Network share vs Splunk vs Azure Monitor
+                  (depends on what IT provides)
+
+  3. Token lifetime: 15 minutes (secure) vs 1 hour (convenient)
+                     vs 8 hours (match work shift)
+
+  4. Log retention: 90 days (standard) vs 1 year (enterprise requirement)
+                    vs 7 years (some compliance frameworks)
+
+  5. PII in logs: Do you log the original prompt (contains user data)
+                  or only the sanitized version? Both have trade-offs.
+
+  These decisions need input from your security team and IT.
+  Do NOT make them alone -- involve stakeholders.
+
+
+================================================================================
+END OF DOCUMENT
+================================================================================

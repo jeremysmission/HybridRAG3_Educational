@@ -1,0 +1,13 @@
+=== HybridRAG API Diagnostic Report (PS 5.1) ===
+Timestamp: 2026-02-12T04:14:07
+BaseHost: https://aiml-aoai-api.gcl.mycompany.com
+Token present: True
+AzureDeployment: <none>
+AzureApiVersion: 2024-02-01
+
+Top candidate endpoints (highest likelihood first):
+--------------------------------------------------
+=== Next Move (auto guidance) ===
+No HTTP responses captured. Likely DNS/TLS/proxy blocked any connection.
+Next: test base host in browser from service machine and verify proxy/TLS.
+

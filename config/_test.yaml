@@ -1,0 +1,39 @@
+api:
+  api_version: '2024-02-01'
+  auth_scheme: api_key
+  deployment: ''
+  endpoint: https://openrouter.ai/api/v1
+  key: ''
+  model: gpt-3.5-turbo
+  provider: azure
+chunking:
+  chunk_size: 1200
+  overlap: 200
+embedding:
+  cache_dir: .model_cache
+  model: all-MiniLM-L6-v2
+http:
+  ca_bundle: ''
+  max_retries: 2
+  retry_delay: 1.0
+  timeout_seconds: 30
+  verify_ssl: true
+mode: offline
+ollama:
+  bad_test_key: hello
+  base_url: http://localhost:11434
+  model: llama3
+  timeout_seconds: 600
+paths:
+  index_dir: index
+  log_dir: logs
+  source_dir: source
+retrieval:
+  hybrid: true
+  min_score: 0.3
+  reranker: false
+  top_k: 5
+security:
+  audit_logging: true
+  offline_mode: false
+  pii_sanitization: true

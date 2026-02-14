@@ -1,0 +1,13 @@
+# ============================================================================
+# HybridRAG v3 - Start Script TEMPLATE
+# ============================================================================
+# Copy this file to start_hybridrag.ps1 and edit the paths below.
+# ============================================================================
+
+$PROJECT_ROOT = "C:\path\to\HybridRAG3"    # <-- EDIT THIS
+$DATA_DIR     = "C:\path\to\data"           # <-- EDIT THIS
+$SOURCE_DIR   = "C:\path\to\source_docs"    # <-- EDIT THIS
+
+Set-Location $PROJECT_ROOT
+& ".venv\Scripts\Activate.ps1"
+Write-Host "HybridRAG3 ready." -ForegroundColor Green

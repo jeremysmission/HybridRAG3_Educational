@@ -1,0 +1,882 @@
+[
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/v1/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/openai/v1/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/aoai/v1/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/api/v1/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/api/openai/v1/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/api/aoai/v1/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/openai/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "OPTIONS",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "POST",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "OPTIONS",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/openai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "POST",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/openai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "OPTIONS",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/aoai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "POST",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/aoai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "OPTIONS",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/api/openai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "POST",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/api/openai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "OPTIONS",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/api/aoai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "POST",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/api/aoai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "OPTIONS",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "POST",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "OPTIONS",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/openai/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "POST",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/openai/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/v1/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/openai/v1/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/aoai/v1/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/api/v1/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/api/openai/v1/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/api/aoai/v1/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/openai/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "OPTIONS",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "POST",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "OPTIONS",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/openai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "POST",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/openai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "OPTIONS",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/aoai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "POST",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/aoai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "OPTIONS",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/api/openai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "POST",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/api/openai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "OPTIONS",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/api/aoai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "POST",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/api/aoai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "OPTIONS",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "POST",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "OPTIONS",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/openai/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "POST",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/openai/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/v1/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/openai/v1/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/aoai/v1/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/api/v1/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/api/openai/v1/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/api/aoai/v1/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/openai/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "OPTIONS",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "POST",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "OPTIONS",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/openai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "POST",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/openai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "OPTIONS",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/aoai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "POST",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/aoai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "OPTIONS",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/api/openai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "POST",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/api/openai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "OPTIONS",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/api/aoai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "POST",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/api/aoai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "OPTIONS",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "POST",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "OPTIONS",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/openai/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "POST",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/openai/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/v1/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/openai/v1/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/aoai/v1/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/api/v1/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/api/openai/v1/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/api/aoai/v1/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/openai/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "GET",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/models",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "OPTIONS",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "POST",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "OPTIONS",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/openai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "POST",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/openai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "OPTIONS",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/aoai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "POST",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/aoai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "OPTIONS",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/api/openai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "POST",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/api/openai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "OPTIONS",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/api/aoai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "POST",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/api/aoai/v1/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "OPTIONS",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "POST",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "OPTIONS",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/openai/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    },
+    {
+        "activityId":  null,
+        "method":  "POST",
+        "statusText":  null,
+        "url":  "https://aiml-aoai-api.gcl.mycompany.com/openai/chat/completions",
+        "ok":  false,
+        "snippet":  null,
+        "status":  null,
+        "error":  "The remote name could not be resolved: \u0027aiml-aoai-api.gcl.mycompany.com\u0027"
+    }
+]
