@@ -1,0 +1,7 @@
+*.bak
+__pycache__/
+.venv/
+.model_cache/
+*.pyc
+Spawn*
+*Game_Plan*
