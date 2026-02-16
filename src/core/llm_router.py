@@ -57,6 +57,7 @@ except ImportError:
 
 # -- Import HybridRAG internals ---------------------------------------------
 from .config import Config
+from .network_gate import get_gate, NetworkBlockedError
 from ..monitoring.logger import get_app_logger
 
 
@@ -121,9 +122,17 @@ class OllamaRouter:
             If not, the connection fails and we return False.
         """
         try:
+            # -- Network gate check --
+            # Even localhost connections go through the gate so they
+            # appear in the audit log. The gate allows localhost in
+            # both offline and online modes.
+            get_gate().check_allowed(self.base_url, "ollama_health", "ollama_router")
+
             with httpx.Client(timeout=5) as client:
                 resp = client.get(self.base_url)
                 return resp.status_code == 200
+        except NetworkBlockedError:
+            return False
         except Exception:
             return False
 
@@ -138,6 +147,16 @@ class OllamaRouter:
             LLMResponse with the answer, or None if the call failed
         """
         start_time = time.time()
+
+        # -- Network gate check --
+        try:
+            get_gate().check_allowed(
+                f"{self.base_url}/api/generate",
+                "ollama_query", "ollama_router",
+            )
+        except NetworkBlockedError as e:
+            self.logger.error("ollama_blocked_by_gate", error=str(e))
+            return None
 
         # Build the request body for Ollama's /api/generate endpoint
         payload = {
@@ -214,13 +233,10 @@ class OllamaRouter:
 class APIRouter:
     """Route queries to Azure OpenAI or standard OpenAI API (online mode)."""
 
-    # -- Azure-specific defaults --
-    # These match your company's configuration from the IT documentation.
-    # AZURE_API_VERSION: The API version string Azure expects.
-    # AZURE_DEPLOYMENT: The model deployment name in Azure portal.
-    #   Azure uses "gpt-35-turbo" (with a dash) not "gpt-3.5-turbo" (with dots).
-    AZURE_API_VERSION = "2024-02-02"   # Updated to match company example
-    AZURE_DEPLOYMENT = "gpt-35-turbo"
+    # -- Fallback defaults (used only if YAML, env vars, and credentials
+    #    all fail to provide a value) --
+    _DEFAULT_API_VERSION = "2024-02-02"
+    _DEFAULT_DEPLOYMENT = "gpt-35-turbo"
 
     def __init__(self, config: Config, api_key: str, endpoint: str = ""):
         """
@@ -233,8 +249,15 @@ class APIRouter:
 
         What happens here:
             1. We figure out if this is Azure or standard OpenAI
-            2. We create the appropriate SDK client
-            3. The client handles all URL/header construction from here on
+            2. We resolve deployment name and API version from config/env
+            3. We create the appropriate SDK client
+            4. The client handles all URL/header construction from here on
+
+        RESOLUTION ORDER for deployment and api_version:
+            1. config/default_config.yaml (api.deployment, api.api_version)
+            2. Environment variables (AZURE_OPENAI_DEPLOYMENT, etc.)
+            3. Extracted from endpoint URL (if it contains /deployments/xxx)
+            4. Hardcoded fallback defaults (last resort)
         """
         self.config = config
         self.api_key = api_key
@@ -250,6 +273,32 @@ class APIRouter:
             "azure" in self.base_endpoint.lower()
             or "aoai" in self.base_endpoint.lower()
         )
+
+        # -- Resolve deployment name --
+        # Priority: YAML config > env var > URL extraction > fallback
+        self.deployment = self._resolve_deployment(config, self.base_endpoint)
+
+        # -- Resolve API version --
+        # Priority: YAML config > env var > URL extraction > fallback
+        self.api_version = self._resolve_api_version(config, self.base_endpoint)
+
+        # -- Network gate check --
+        # Verify the endpoint is allowed before we even create the SDK client.
+        # This is an early fail-fast check. The gate also checks on each
+        # query() call, but catching it here gives a clearer error message
+        # during startup rather than on the first query.
+        try:
+            get_gate().check_allowed(
+                self.base_endpoint, "api_client_init", "api_router",
+            )
+        except NetworkBlockedError as e:
+            self.client = None
+            self.logger.error(
+                "api_endpoint_blocked_by_gate",
+                endpoint=self.base_endpoint,
+                error=str(e),
+            )
+            return
 
         # -- Check if the openai SDK is available --
         if not OPENAI_SDK_AVAILABLE:
@@ -296,7 +345,7 @@ class APIRouter:
                 self.client = AzureOpenAI(
                     azure_endpoint=clean_endpoint,
                     api_key=self.api_key,
-                    api_version=self.AZURE_API_VERSION,
+                    api_version=self.api_version,
                     # http_client with verify=True ensures SSL works
                     # through corporate proxy (with pip-system-certs installed)
                     http_client=httpx.Client(verify=True),
@@ -306,8 +355,8 @@ class APIRouter:
                     "api_router_init",
                     provider="azure_openai",
                     endpoint=clean_endpoint,
-                    deployment=self.AZURE_DEPLOYMENT,
-                    api_version=self.AZURE_API_VERSION,
+                    deployment=self.deployment,
+                    api_version=self.api_version,
                     sdk="openai_official",
                 )
 
@@ -336,6 +385,98 @@ class APIRouter:
         except Exception as e:
             self.client = None
             self.logger.error("api_router_init_failed", error=str(e))
+
+    @staticmethod
+    def _resolve_deployment(config, endpoint_url):
+        """
+        Resolve Azure deployment name from multiple sources.
+
+        WHY THIS EXISTS:
+            Different machines may have different Azure deployment names.
+            Instead of hardcoding "gpt-35-turbo", we check multiple sources
+            so each machine can configure its own deployment name.
+
+        Resolution order (first non-empty wins):
+            1. YAML config: api.deployment in default_config.yaml
+            2. Environment variables: AZURE_OPENAI_DEPLOYMENT, etc.
+            3. URL extraction: if endpoint contains /deployments/xxx
+            4. Fallback: "gpt-35-turbo" (safe default)
+
+        Returns:
+            str: The resolved deployment name.
+        """
+        import re
+
+        # 1. YAML config
+        if config.api.deployment:
+            return config.api.deployment
+
+        # 2. Environment variables (same aliases as credentials.py)
+        for var in [
+            "AZURE_OPENAI_DEPLOYMENT",
+            "AZURE_DEPLOYMENT",
+            "OPENAI_DEPLOYMENT",
+            "AZURE_OPENAI_DEPLOYMENT_NAME",
+            "DEPLOYMENT_NAME",
+            "AZURE_CHAT_DEPLOYMENT",
+        ]:
+            val = os.environ.get(var, "").strip()
+            if val:
+                return val
+
+        # 3. Extract from URL (e.g., .../deployments/gpt-4o/...)
+        if endpoint_url and "/deployments/" in endpoint_url:
+            match = re.search(r"/deployments/([^/?]+)", endpoint_url)
+            if match:
+                return match.group(1)
+
+        # 4. Fallback default
+        return APIRouter._DEFAULT_DEPLOYMENT
+
+    @staticmethod
+    def _resolve_api_version(config, endpoint_url):
+        """
+        Resolve Azure API version from multiple sources.
+
+        WHY THIS EXISTS:
+            Azure API versions change over time and different tenants
+            may require different versions. Instead of hardcoding one
+            version, we check multiple sources.
+
+        Resolution order (first non-empty wins):
+            1. YAML config: api.api_version in default_config.yaml
+            2. Environment variables: AZURE_OPENAI_API_VERSION, etc.
+            3. URL extraction: if endpoint contains ?api-version=xxx
+            4. Fallback: "2024-02-02" (safe default)
+
+        Returns:
+            str: The resolved API version string.
+        """
+        import re
+
+        # 1. YAML config
+        if config.api.api_version:
+            return config.api.api_version
+
+        # 2. Environment variables
+        for var in [
+            "AZURE_OPENAI_API_VERSION",
+            "AZURE_API_VERSION",
+            "OPENAI_API_VERSION",
+            "API_VERSION",
+        ]:
+            val = os.environ.get(var, "").strip()
+            if val:
+                return val
+
+        # 3. Extract from URL (e.g., ...?api-version=2024-02-02)
+        if endpoint_url and "api-version=" in endpoint_url:
+            match = re.search(r"api-version=([^&]+)", endpoint_url)
+            if match:
+                return match.group(1)
+
+        # 4. Fallback default
+        return APIRouter._DEFAULT_API_VERSION
 
     def _extract_azure_base(self, url: str) -> str:
         """
@@ -406,12 +547,23 @@ class APIRouter:
             )
             return None
 
+        # -- Network gate check (per-query) --
+        # Even though we checked in __init__, the mode could have changed
+        # (e.g., user ran rag-mode-offline mid-session). Check again.
+        try:
+            get_gate().check_allowed(
+                self.base_endpoint, "api_query", "api_router",
+            )
+        except NetworkBlockedError as e:
+            self.logger.error("api_query_blocked_by_gate", error=str(e))
+            return None
+
         start_time = time.time()
 
         # -- Pick the model name --
         # Azure: use the deployment name (gpt-35-turbo)
         # Standard OpenAI: use the model from config (gpt-4o-mini, etc.)
-        model_name = self.AZURE_DEPLOYMENT if self.is_azure else self.config.api.model
+        model_name = self.deployment if self.is_azure else self.config.api.model
 
         try:
             # -- THE API CALL --
@@ -502,7 +654,7 @@ class APIRouter:
                     hint=(
                         "TROUBLESHOOTING 404: "
                         "(1) Is the deployment name correct? Expected: "
-                        + self.AZURE_DEPLOYMENT + ". "
+                        + self.deployment + ". "
                         "(2) Is the endpoint URL correct? "
                         "(3) Check Azure portal for the exact deployment name."
                     ),
@@ -559,8 +711,8 @@ class APIRouter:
             "sdk": "openai_official",
         }
         if self.is_azure:
-            status["deployment"] = self.AZURE_DEPLOYMENT
-            status["api_version"] = self.AZURE_API_VERSION
+            status["deployment"] = self.deployment
+            status["api_version"] = self.api_version
             status["clean_endpoint"] = self._extract_azure_base(self.base_endpoint)
         return status
 

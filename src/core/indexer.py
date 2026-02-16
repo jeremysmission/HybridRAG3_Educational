@@ -1,10 +1,10 @@
 # ============================================================================
-# HybridRAG — Indexer (src/core/indexer.py)
+# HybridRAG -- Indexer (src/core/indexer.py)
 # ============================================================================
 #
 # WHAT THIS FILE DOES:
 #   This is the "brain" of the indexing pipeline. It orchestrates:
-#     scan folder -> parse each file -> chunk text -> embed chunks -> store
+#     scan folder -> preflight check -> parse each file -> chunk -> embed -> store
 #
 #   This is the module that runs for your week-long indexing job.
 #
@@ -16,22 +16,31 @@
 #      memory. Instead we break the text into blocks of ~200K chars, process
 #      each block, write to disk, then move on. RAM stays stable.
 #
-#   2. Determisecurity standardic chunk IDs (from chunk_ids.py)
+#   2. Deterministic chunk IDs (from chunk_ids.py)
 #      WHY: If indexing crashes at file #4,000 out of 10,000 and you restart,
-#      determisecurity standardic IDs mean "INSERT OR IGNORE" in SQLite skips the first
+#      deterministic IDs mean "INSERT OR IGNORE" in SQLite skips the first
 #      4,000 files' chunks automatically. No duplicates, no manual cleanup.
 #
 #   3. Skip unchanged files (hash-based change detection)
 #      WHY: Your corporate drive has 100GB of documents. Most don't change
 #      week to week. We store a hash (size + mtime) with each file's chunks.
 #      On restart, we compare the stored hash to the current file. If they
-#      match, skip it. If they differ, the file was modified — delete old
+#      match, skip it. If they differ, the file was modified -- delete old
 #      chunks and re-index. This turns a 7-day re-index into minutes.
 #
 #   4. Never crash on a single file failure
 #      WHY: File #3,000 might be a corrupted PDF. If we crash, you lose
 #      3 days of indexing progress. Instead, we log the error and continue
 #      to file #3,001. You can review failures in the log after.
+#
+#   5. Pre-flight integrity checks (NEW 2026-02-15)
+#      WHY: BUG-004 showed that _validate_text() only checks the first
+#      2000 chars of parsed output. Corrupt files (incomplete torrents,
+#      Word temp files, broken ZIPs) can pass that check but still
+#      produce garbage that pollutes the vector store. The pre-flight
+#      gate catches these BEFORE the parser even runs -- zero wasted time,
+#      zero garbage in the index. Results are logged to the indexing
+#      summary so the admin knows what was blocked and why.
 #
 # BUGS FIXED (2026-02-08):
 #   BUG-001: Hash detection uses vector_store.get_file_hash() in index_folder()
@@ -43,6 +52,9 @@
 #            checked "do chunks exist?" without checking if the file changed.
 #   BUG-003: Added close() method to release the embedder model from RAM.
 #   BUG-004: Added _validate_text() to catch binary garbage before chunking.
+#   BUG-004b: Added _preflight_check() to catch corrupt files before parsing.
+#             This catches Word temp files, zero-byte, broken ZIPs, truncated
+#             PDFs, and high null-byte ratios BEFORE the parser runs.
 #
 # ALTERNATIVES CONSIDERED:
 #   - LangChain DirectoryLoader: hides logic in "magic" class, impossible
@@ -57,6 +69,7 @@ from __future__ import annotations
 import os
 import time
 import traceback
+import zipfile
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 from datetime import datetime
@@ -99,6 +112,26 @@ class IndexingProgressCallback:
 
 
 # -------------------------------------------------------------------
+# Pre-flight check constants
+# -------------------------------------------------------------------
+# These match the thresholds in scan_source_files.py so the pre-flight
+# gate and the standalone scanner agree on what's bad.
+
+_ZIP_BASED_FORMATS = {".docx", ".pptx", ".xlsx"}
+
+_MIN_FILE_SIZES = {
+    ".pdf":  200,
+    ".docx": 2000,
+    ".pptx": 5000,
+    ".xlsx": 2000,
+    ".eml":  100,
+}
+
+_PREFLIGHT_SAMPLE_SIZE = 16384  # 16KB for null-byte sampling
+_NULL_BYTE_THRESHOLD = 0.20     # 20% null bytes = suspect
+
+
+# -------------------------------------------------------------------
 # Indexer
 # -------------------------------------------------------------------
 
@@ -124,7 +157,7 @@ class Indexer:
 
         idx_cfg = config.indexing if config else None
 
-        # max_chars_per_file: Safety limit — truncate files larger than this.
+        # max_chars_per_file: Safety limit -- truncate files larger than this.
         # 2 million chars ~ a 1,000-page document.
         self.max_chars_per_file = getattr(idx_cfg, "max_chars_per_file", 2_000_000)
 
@@ -144,12 +177,12 @@ class Indexer:
         self._excluded_dirs = set(
             getattr(idx_cfg, "excluded_dirs", [
                 ".venv", "venv", "__pycache__", ".git", ".idea", ".vscode",
-                "node_modules",
+                "node_modules", "_quarantine",
             ])
         )
 
     # ------------------------------------------------------------------
-    # Public API — this is what you call to index a folder
+    # Public API -- this is what you call to index a folder
     # ------------------------------------------------------------------
 
     def index_folder(
@@ -162,7 +195,8 @@ class Indexer:
         Index all supported files in a folder.
 
         Returns dict with: total_files_scanned, total_files_indexed,
-        total_files_skipped, total_chunks_added, elapsed_seconds.
+        total_files_skipped, total_chunks_added, elapsed_seconds,
+        preflight_blocked (list of files blocked by pre-flight checks).
         """
         if progress_callback is None:
             progress_callback = IndexingProgressCallback()
@@ -171,7 +205,8 @@ class Indexer:
         total_chunks = 0
         total_files_indexed = 0
         total_files_skipped = 0
-        total_files_reindexed = 0    # NEW: tracks modified file re-indexes
+        total_files_reindexed = 0
+        preflight_blocked = []  # NEW: tracks files blocked by pre-flight
 
         folder = Path(folder_path)
         if not folder.exists() or not folder.is_dir():
@@ -201,9 +236,34 @@ class Indexer:
                 )
 
                 # ==========================================================
+                # PRE-FLIGHT INTEGRITY CHECK (BUG-004b)
+                # ==========================================================
+                # Fast structural checks BEFORE parsing. Catches corrupt,
+                # incomplete, and junk files so the parser never wastes
+                # time on them and no garbage reaches the vector store.
+                #
+                # These checks cost <1ms per file (just stat + header read).
+                # ==========================================================
+                preflight_reason = self._preflight_check(file_path)
+                if preflight_reason:
+                    total_files_skipped += 1
+                    preflight_blocked.append(
+                        (str(file_path), preflight_reason)
+                    )
+                    progress_callback.on_file_skipped(
+                        str(file_path),
+                        f"preflight: {preflight_reason}"
+                    )
+                    print(
+                        f"  BLOCKED: {file_path.name} -- "
+                        f"{preflight_reason}"
+                    )
+                    continue
+
+                # ==========================================================
                 # BUG-002 FIX: Change detection now uses file hashes
                 # ==========================================================
-                # OLD behavior: just checked "do chunks exist?" — if yes,
+                # OLD behavior: just checked "do chunks exist?" -- if yes,
                 #   skip. This meant modified files were never re-indexed.
                 # NEW behavior: check hash. Three possible outcomes:
                 #   1. No chunks exist -> new file, index it
@@ -214,16 +274,16 @@ class Indexer:
                 stored_hash = self.vector_store.get_file_hash(str(file_path))
 
                 if stored_hash:
-                    # Chunks exist for this file — check if it changed
+                    # Chunks exist for this file -- check if it changed
                     if stored_hash == current_hash:
-                        # File unchanged since last index — skip it
+                        # File unchanged since last index -- skip it
                         total_files_skipped += 1
                         progress_callback.on_file_skipped(
                             str(file_path), "unchanged (hash match)"
                         )
                         continue
                     else:
-                        # File was modified — delete old chunks, re-index
+                        # File was modified -- delete old chunks, re-index
                         deleted = self.vector_store.delete_chunks_by_source(
                             str(file_path)
                         )
@@ -248,6 +308,11 @@ class Indexer:
                 # Check if the extracted text is actually readable words,
                 # not binary garbage from a corrupted file. If it fails
                 # validation, skip the file and log a warning.
+                #
+                # NOTE: The pre-flight check above catches most corrupt
+                # files before they reach this point. This is the second
+                # safety net for files that have valid structure but
+                # produce garbage text (e.g., encrypted PDFs, DRM files).
                 # ==========================================================
                 if not self._validate_text(text):
                     total_files_skipped += 1
@@ -255,7 +320,7 @@ class Indexer:
                         str(file_path), "binary garbage detected"
                     )
                     print(
-                        f"  WARNING: {file_path.name} — text looks like "
+                        f"  WARNING: {file_path.name} -- text looks like "
                         f"binary garbage, skipping"
                     )
                     continue
@@ -268,7 +333,7 @@ class Indexer:
                     )
                     text = text[: self.max_chars_per_file]
 
-                # Get file modification time for determisecurity standardic chunk IDs
+                # Get file modification time for deterministic chunk IDs
                 try:
                     file_mtime_ns = file_path.stat().st_mtime_ns
                 except Exception:
@@ -342,7 +407,7 @@ class Indexer:
                 )
 
             except Exception as e:
-                # Never crash on a single file — log and continue
+                # Never crash on a single file -- log and continue
                 error_msg = f"{type(e).__name__}: {e}"
                 print(f"  ERROR on {file_path.name}: {error_msg}")
                 progress_callback.on_error(str(file_path), error_msg)
@@ -357,6 +422,7 @@ class Indexer:
             "total_files_skipped": total_files_skipped,
             "total_files_reindexed": total_files_reindexed,
             "total_chunks_added": total_chunks,
+            "preflight_blocked": preflight_blocked,
             "elapsed_seconds": elapsed,
         }
 
@@ -368,11 +434,133 @@ class Indexer:
         print(f"  Chunks added:     {result['total_chunks_added']}")
         print(f"  Time: {elapsed:.1f}s")
 
+        # --- Pre-flight report (if any files were blocked) ---
+        if preflight_blocked:
+            print()
+            print(f"  PRE-FLIGHT BLOCKED: {len(preflight_blocked)} files")
+            print(f"  These files were caught before parsing and did NOT")
+            print(f"  enter the vector store:")
+            for blocked_path, blocked_reason in preflight_blocked:
+                blocked_name = Path(blocked_path).name
+                print(f"    - {blocked_name}: {blocked_reason}")
+            print()
+            print(f"  To review and clean up, run:  rag-scan --deep")
+            print(f"  To quarantine automatically:  rag-scan --auto-quarantine")
+
         return result
 
     # ------------------------------------------------------------------
     # Internal methods
     # ------------------------------------------------------------------
+
+    def _preflight_check(self, file_path: Path) -> Optional[str]:
+        """
+        Fast structural integrity check BEFORE parsing.
+
+        Runs <1ms per file (just stat() + small reads). Returns None
+        if the file looks OK, or a reason string if it should be
+        skipped.
+
+        CHECKS (in order):
+          1. Word/Office temp lock file (~$ prefix)
+          2. Zero-byte file
+          3. ZIP integrity for Office formats (.docx, .pptx, .xlsx)
+          4. PDF structure (header + %%EOF)
+          5. High null-byte ratio (incomplete torrent signature)
+          6. Too small for file type
+
+        WHY THIS EXISTS:
+          The parser + _validate_text() pipeline was the only enterprise
+          against corrupt files. But _validate_text() only checks the
+          first 2000 chars of parsed output. Files with valid headers
+          but garbage middles (incomplete torrents) sail through.
+          Pre-flight catches them before the parser even runs.
+        """
+        name = file_path.name
+        ext = file_path.suffix.lower()
+
+        # --- Check 1: Word/Office temp lock file ---
+        # These are ~162-byte files starting with "~$" that Word creates
+        # while a document is open. They contain the editor's username,
+        # not document content. They're never valid documents.
+        if name.startswith("~$"):
+            return "Office temp lock file (not a document)"
+
+        # --- Check 2: Zero-byte file ---
+        try:
+            size = file_path.stat().st_size
+        except OSError as e:
+            return f"Cannot stat file: {e}"
+
+        if size == 0:
+            return "Zero-byte file (empty)"
+
+        # --- Check 3: ZIP integrity for Office formats ---
+        # .docx, .pptx, .xlsx are ZIP archives internally. A broken ZIP
+        # means the file is corrupt -- the parser will either crash or
+        # produce garbage.
+        if ext in _ZIP_BASED_FORMATS:
+            try:
+                with zipfile.ZipFile(file_path, 'r') as zf:
+                    bad = zf.testzip()
+                    if bad:
+                        return f"Corrupt ZIP (bad entry: {bad})"
+            except zipfile.BadZipFile:
+                return "Invalid ZIP structure (not a valid Office doc)"
+            except Exception as e:
+                return f"Cannot verify ZIP: {type(e).__name__}"
+
+        # --- Check 4: PDF structure ---
+        # Valid PDFs must start with %PDF and end with %%EOF.
+        if ext == ".pdf":
+            try:
+                with open(file_path, "rb") as f:
+                    header = f.read(10)
+                    if not header.startswith(b"%PDF"):
+                        return "Not a valid PDF (missing %PDF header)"
+                    read_size = min(1024, size)
+                    f.seek(-read_size, 2)
+                    tail = f.read(read_size)
+                    if b"%%EOF" not in tail:
+                        return "Truncated PDF (missing %%EOF marker)"
+            except (PermissionError, OSError) as e:
+                return f"Cannot read PDF: {e}"
+
+        # --- Check 5: Null-byte ratio ---
+        # Incomplete torrent downloads have valid headers but long
+        # stretches of null bytes in the middle. We sample from the
+        # middle of the file to catch this.
+        if size > 1000:  # Only check files large enough to matter
+            try:
+                with open(file_path, "rb") as f:
+                    if size > _PREFLIGHT_SAMPLE_SIZE * 2:
+                        f.seek(size // 2 - _PREFLIGHT_SAMPLE_SIZE // 2)
+                        sample = f.read(_PREFLIGHT_SAMPLE_SIZE)
+                    else:
+                        sample = f.read(_PREFLIGHT_SAMPLE_SIZE)
+
+                null_count = sample.count(b'\x00')
+                ratio = null_count / len(sample) if sample else 0
+
+                if ratio > _NULL_BYTE_THRESHOLD:
+                    pct = f"{ratio * 100:.0f}%"
+                    return (
+                        f"High null-byte ratio ({pct}) -- "
+                        f"likely incomplete download"
+                    )
+            except (PermissionError, OSError):
+                pass  # Non-fatal, continue to parsing
+
+        # --- Check 6: Too small for file type ---
+        min_size = _MIN_FILE_SIZES.get(ext)
+        if min_size and size < min_size:
+            return (
+                f"Too small for {ext} ({size}B, "
+                f"min expected: {min_size}B)"
+            )
+
+        # All checks passed
+        return None
 
     def _process_file_with_retry(self, file_path, max_retries=3):
         """Retry file processing up to max_retries times with backoff."""
@@ -404,15 +592,15 @@ class Indexer:
 
         WHY size + mtime instead of reading file content?
           Reading file content (e.g., SHA-256) would require reading every
-          byte of every file on every indexing run — that's 100GB+ of I/O
+          byte of every file on every indexing run -- that's 100GB+ of I/O
           on a corporate network drive. Size + mtime is instant (just a
           stat() call) and catches the vast majority of real modifications.
 
         WHEN THIS FAILS:
           If someone modifies a file but the OS doesn't update mtime (rare),
           or if a file is replaced with a same-size different file at the
-          exact same nanosecond (essentially impossible). For defence use,
-          we could add SHA-256 as a future config option for higher assurance.
+          exact same nanosecond (essentially impossible). For higher
+          assurance, we could add SHA-256 as a future config option.
         """
         stat = file_path.stat()
         fast_key = f"{stat.st_size}:{stat.st_mtime_ns}"
@@ -456,7 +644,7 @@ class Indexer:
         Check if extracted text is actually readable, not binary garbage.
 
         WHY THIS EXISTS (BUG-004):
-          Some corrupted PDFs don't crash the parser — they just return
+          Some corrupted PDFs don't crash the parser -- they just return
           garbage like "\\x00\\x89PNG\\r\\n\\x1a\\x00..." as text. Without
           this check, that garbage gets chunked, embedded, and stored,
           polluting search results with nonsensical matches.
@@ -474,19 +662,24 @@ class Indexer:
           - Binary garbage: typically < 10% printable
           - 30% gives plenty of margin for all real document types
 
+        NOTE: The pre-flight check (_preflight_check) catches most
+        corrupt files before they reach this point. This is the second
+        safety net for files that have valid structure but produce
+        garbage text (e.g., encrypted PDFs, DRM-protected files).
+
         Returns True if text looks valid, False if it looks like garbage.
         """
         if not text or len(text) < 20:
             return False  # Too short to be useful
 
-        # Take a sample — no need to scan millions of chars
+        # Take a sample -- no need to scan millions of chars
         sample = text[:2000]
 
         # Count "normal" characters: letters, digits, spaces, newlines,
         # and common punctuation that appears in real documents
         normal_count = 0
         for ch in sample:
-            if ch.isalnum() or ch in ' \t\n\r.,;:!?()-/\'\"@#$%&*+=[]{}|<>~':
+            if ch.isalnum() or ch in ' \t\n\r.,;:!?()-/\'"@#$%&*+=[]{}|<>~':
                 normal_count += 1
 
         ratio = normal_count / len(sample)

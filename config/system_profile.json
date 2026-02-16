@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-02-14T19:12:12.489540+00:00",
+  "generated_at": "2026-02-14T22:13:27.529886+00:00",
   "hardware": {
-    "timestamp": "2026-02-14T19:12:04.938294+00:00",
+    "timestamp": "2026-02-14T22:13:03.257971+00:00",
     "hostname": "Myself",
     "os": {
       "system": "Windows",
@@ -93,6 +93,11 @@
       "test": "enterprise-IN-DEPTH: embedder.py",
       "passed": true,
       "detail": "Present"
+    },
+    {
+      "test": "NETWORK_GATE",
+      "passed": true,
+      "detail": "ONLINE: openrouter.ai"
     }
   ],
   "tier1": [

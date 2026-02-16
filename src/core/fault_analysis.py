@@ -1247,10 +1247,14 @@ class GoldenProbes:
         start = time.time()
         try:
             import httpx
+            from src.core.network_gate import get_gate
 
             base_url = "http://localhost:11434"
             if hasattr(self.config, "ollama") and hasattr(self.config.ollama, "base_url"):
                 base_url = self.config.ollama.base_url
+
+            # Network gate check (localhost is allowed in offline/online)
+            get_gate().check_allowed(base_url, "ollama_probe", "fault_analysis")
 
             with httpx.Client(timeout=5) as client:
                 resp = client.get(base_url)
@@ -1295,8 +1299,13 @@ class GoldenProbes:
         start = time.time()
         try:
             import httpx
+            from src.core.network_gate import get_gate
 
             endpoint = self.config.api.endpoint
+
+            # Network gate check (only allowed in online mode to the configured endpoint)
+            get_gate().check_allowed(endpoint, "api_probe", "fault_analysis")
+
             # Just check if the server responds (OPTIONS or HEAD request)
             with httpx.Client(timeout=10, verify=True) as client:
                 resp = client.get(endpoint)

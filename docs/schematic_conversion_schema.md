@@ -91,7 +91,7 @@
 #     },
 #     {
 #       "ref_designator": "U1",
-#       "type": "integrated_cirsensitive datat",
+#       "type": "integrated_circuit",
 #       "value": "LM7805",
 #       "part_number": "LM7805CT",
 #       "package": "TO-220",
@@ -145,7 +145,7 @@
 #   - Python library: none mature — generate from template
 #
 # SPICE Netlist:
-#   - Text-based cirsensitive datat description
+#   - Text-based circuit description
 #   - Every EDA tool and simulator reads it
 #   - Format: component_name node1 node2 value
 #     Example: R1 VCC_5V NODE_A 10k
@@ -184,7 +184,7 @@
 # L       | Inductor                | L1, L3
 # D       | Diode                   | D1, D12
 # Q       | Transistor              | Q1, Q5
-# U       | Integrated Cirsensitive datat      | U1, U32
+# U       | Integrated Circuit      | U1, U32
 # J       | Connector               | J1, J15
 # P       | Plug                    | P1, P4
 # K       | Relay                   | K1, K3

@@ -137,8 +137,10 @@ class HttpClient:
     def __init__(self, config: Optional[HttpClientConfig] = None):
         self.config = config or HttpClientConfig()
 
-        # Check master kill switch
-        # HYBRIDRAG_OFFLINE=1 blocks all network requests
+        # Legacy kill switch check (backward compatible)
+        # The centralized NetworkGate now handles all access control,
+        # but we still respect HYBRIDRAG_OFFLINE for backward compatibility
+        # and as a secondary enforcement layer (enterprise-in-depth).
         if os.environ.get("HYBRIDRAG_OFFLINE", "").strip() in ("1", "true", "yes"):
             self.config.offline_mode = True
             logger.info("NETWORK KILL SWITCH: HYBRIDRAG_OFFLINE is set -- all HTTP blocked")
@@ -239,12 +241,28 @@ class HttpClient:
             ProxyError,
         )
 
-        # --- Kill switch check ---
+        # --- Kill switch check (legacy, backward compatible) ---
         if self.config.offline_mode:
             logger.warning("HTTP blocked by offline mode: %s %s", method, url)
             return HttpResponse(
                 status_code=0,
                 error="Network requests blocked. HYBRIDRAG_OFFLINE is enabled.",
+            )
+
+        # --- Network gate check (centralized access control) ---
+        try:
+            from src.core.network_gate import get_gate
+            get_gate().check_allowed(url, "http_request", "http_client")
+        except ImportError:
+            # Gate module not available (shouldn't happen, but fail-open
+            # here because the legacy kill switch above already caught
+            # the truly offline case)
+            pass
+        except Exception as gate_error:
+            logger.warning("HTTP blocked by network gate: %s %s -- %s", method, url, gate_error)
+            return HttpResponse(
+                status_code=0,
+                error=f"Network gate blocked: {gate_error}",
             )
 
         # --- Prepare request ---

@@ -1264,7 +1264,7 @@ class TestIndexer:
 
         # We need to patch several imports that the Indexer uses
         with patch("src.core.indexer.make_chunk_id") as mock_make_id:
-            # Return determisecurity standardic IDs
+            # Return deterministic IDs
             call_counter = [0]
 
             def make_fake_id(**kwargs):
@@ -1413,9 +1413,9 @@ class TestIndexer:
         assert indexer._validate_text(None) is False
 
     # ------------------------------------------------------------------
-    # Test 5.6: File hash computation is determisecurity standardic
+    # Test 5.6: File hash computation is deterministic
     # ------------------------------------------------------------------
-    def test_file_hash_is_determisecurity standardic(self):
+    def test_file_hash_is_deterministic(self):
         """
         WHAT: Same file produces the same hash every time.
         WHY:  Hash comparison is how we detect changes. If the hash

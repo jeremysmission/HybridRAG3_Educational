@@ -63,11 +63,16 @@ def detect_known_bugs(report: DiagnosticReport) -> None:
             "Open connections and loaded models leak across long runs.",
             "Add close() methods. Call in finally block.", "MEDIUM")
 
-    # BUG-004: Always flag -- no binary garbage detection
-    report.add_bug("BUG-004", "No post-parse binary garbage validation",
-        "If a parser returns binary data, it gets chunked and embedded\n"
-        "without validation, polluting search results.",
-        "Add text quality check: if non_printable_ratio > 0.10: skip", "MEDIUM")
+    # BUG-004: Binary garbage detection
+    # The preflight gate (_preflight_check) and _validate_text() together
+    # catch corrupt files. Only flag BUG-004 if the preflight gate is missing.
+    r = _find("change_detection")
+    has_preflight = (r and r.details.get("has_preflight_check", False))
+    if not has_preflight:
+        report.add_bug("BUG-004", "No pre-parse binary garbage validation",
+            "If a parser returns binary data, it gets chunked and embedded\n"
+            "without validation, polluting search results.",
+            "Update indexer.py to include _preflight_check()", "MEDIUM")
 
     # SEC-001: Public API default
     r = _find("security_endpoint")

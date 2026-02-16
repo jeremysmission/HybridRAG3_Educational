@@ -34,7 +34,7 @@
 #
 # WHY INSERT OR IGNORE?
 #   If indexing crashes halfway and you restart, the same chunks get
-#   the same determisecurity standardic IDs (from chunk_ids.py). INSERT OR IGNORE
+#   the same deterministic IDs (from chunk_ids.py). INSERT OR IGNORE
 #   means "skip it if it already exists" — so you never get duplicates.
 #
 # BUGS FIXED (2026-02-08):
@@ -312,7 +312,7 @@ class VectorStore:
         texts : list of str, length N
             The actual text content of each chunk.
         chunk_ids : list of str, length N (optional)
-            Determisecurity standardic IDs for idempotent indexing.
+            Deterministic IDs for idempotent indexing.
         file_hash : str (NEW — BUG-001 fix)
             Fingerprint of the source file, e.g. "284519:132720938471230000".
             Stored with every chunk so the indexer can detect file changes.

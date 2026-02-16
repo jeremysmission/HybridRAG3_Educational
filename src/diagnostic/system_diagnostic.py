@@ -200,11 +200,25 @@ def run_security_audit():
         results.append({"test": f"ENV: {var}", "passed": ok, "detail": val})
         print(f"  [{'PASS' if ok else 'FAIL'}] {var} = {val}")
 
-    # Kill switch
-    ks = os.environ.get("HYBRIDRAG_NETWORK_KILL_SWITCH", "NOT SET")
-    ok = ks.lower() == "true"
-    results.append({"test": "ENV: KILL_SWITCH", "passed": ok, "detail": ks})
-    print(f"  [{'PASS' if ok else 'FAIL'}] NETWORK_KILL_SWITCH = {ks}")
+    # OLD KILL SWITCH CHECK -- REPLACED 2026-02-15
+    # The old code here checked for $env:HYBRIDRAG_NETWORK_KILL_SWITCH = "true"
+    # and showed [PASS] or [FAIL]. That env var is no longer set by
+    # start_hybridrag.ps1 -- the Network Gate (src/core/network_gate.py)
+    # now controls ALL network access via the YAML mode setting.
+    #
+    # The Network Gate check happens below at the end of this function
+    # (already existed from the Feb 14 session, uses gate.mode_name and
+    # gate._allowed_hosts correctly).
+    #
+    # We keep a WARNING here in case the old env var lingers from a stale
+    # PowerShell session that was sourced before the 2026-02-15 update.
+    old_ks = os.environ.get("HYBRIDRAG_NETWORK_KILL_SWITCH", "")
+    if old_ks:
+        print(f"  [WARN] Deprecated env var HYBRIDRAG_NETWORK_KILL_SWITCH = {old_ks}")
+        print(f"         This variable is no longer used. Re-source start_hybridrag.ps1")
+        print(f"         The Network Gate now controls access via YAML mode setting.")
+        results.append({"test": "ENV: OLD_KILL_SWITCH", "passed": False,
+                        "detail": f"Deprecated var still set: {old_ks}"})
 
     # Model cache dirs
     for label, var in [("ST_HOME", "SENTENCE_TRANSFORMERS_HOME"), ("HF_HOME", "HF_HOME")]:

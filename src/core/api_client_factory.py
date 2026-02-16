@@ -152,7 +152,7 @@ class ApiClient:
             context_chunks: Optional list of retrieved document chunks to
                 include as context. These get prepended to the user message.
             max_tokens: Maximum tokens in the response.
-            temperature: Randomness (0.0 = determisecurity standardic, 1.0 = creative).
+            temperature: Randomness (0.0 = deterministic, 1.0 = creative).
 
         Returns:
             Dict with keys:

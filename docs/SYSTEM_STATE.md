@@ -7,7 +7,7 @@ Last Updated: 2026-02-07
 ## Working Features
 
 ### Indexing Pipeline
-- Crash-safe indexing with determisecurity standardic chunk IDs (INSERT OR IGNORE)
+- Crash-safe indexing with deterministic chunk IDs (INSERT OR IGNORE)
 - Block-based text processing (200K char blocks) for RAM safety
 - Skip unchanged files on restart (chunk-existence check)
 - Anti-sleep: Windows SetThreadExecutionState prevents sleep during overnight runs

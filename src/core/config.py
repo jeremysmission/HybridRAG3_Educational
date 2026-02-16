@@ -193,8 +193,15 @@ class APIConfig:
     endpoint: str = ""             # EMPTY BY DEFAULT -- must be explicitly configured
     model: str = "gpt-3.5-turbo"
     max_tokens: int = 2048
-    temperature: float = 0.1       # Low = more focused/determisecurity standardic answers
+    temperature: float = 0.1       # Low = more focused/deterministic answers
     timeout_seconds: int = 30
+
+    # Azure-specific settings (ignored for non-Azure providers)
+    # These can be set in YAML, env vars, or extracted from URL.
+    # If empty, the system will try env vars (AZURE_OPENAI_DEPLOYMENT,
+    # AZURE_OPENAI_API_VERSION) then fall back to sensible defaults.
+    deployment: str = ""           # Azure deployment name (e.g., "gpt-35-turbo")
+    api_version: str = ""          # Azure API version (e.g., "2024-02-02")
 
     # URL allowlist: if non-empty, endpoint MUST start with one of these
     # prefixes or online mode will refuse to start. This prevents
@@ -468,6 +475,32 @@ def load_config(
         indexing=_dict_to_dataclass(IndexingConfig, yaml_data.get("indexing", {})),
         security=_dict_to_dataclass(SecurityConfig, yaml_data.get("security", {})),
     )
+
+    # --- Auto-configure the network gate ---
+    # The gate must be configured BEFORE any network calls. By doing it
+    # here in load_config(), it happens automatically no matter which
+    # code path loads the config (boot.py, diagnostics, toolkit, etc.).
+    #
+    # Admin mode override: set HYBRIDRAG_ADMIN_MODE=1 for maintenance tasks
+    # (pip install, model downloads). This is intentionally an env var,
+    # not a YAML setting, so it can't be accidentally left on.
+    try:
+        from src.core.network_gate import configure_gate
+        admin_override = os.environ.get(
+            "HYBRIDRAG_ADMIN_MODE", ""
+        ).strip().lower() in ("1", "true", "yes")
+
+        gate_mode = "admin" if admin_override else config.mode
+
+        configure_gate(
+            mode=gate_mode,
+            api_endpoint=config.api.endpoint,
+            allowed_prefixes=config.api.allowed_endpoint_prefixes,
+        )
+    except Exception:
+        # If gate setup fails, we continue -- it defaults to OFFLINE
+        # (fail-closed). This is enterprise-in-depth, not a hard dependency.
+        pass
 
     return config
 

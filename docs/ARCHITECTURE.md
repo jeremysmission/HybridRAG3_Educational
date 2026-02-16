@@ -59,7 +59,7 @@ catches misconfiguration before any work begins.
 The workhorse. Scans source folder, dispatches files to parsers, chunks text,
 computes embeddings in batches, stores results. Features:
 - Block-based processing (200K char blocks) for RAM safety
-- Determisecurity standardic chunk IDs (same file + position = same ID every time)
+- Deterministic chunk IDs (same file + position = same ID every time)
 - INSERT OR IGNORE for crash-safe restarts
 - Retry logic with exponential backoff for network drive reads
 - File hash methods for change detection (size + mtime)
@@ -150,7 +150,7 @@ negligible quality loss for cosine similarity on normalized vectors.
 | FTS5 OR-logic | AND-logic missed relevant chunks; OR with BM25 ranking catches more |
 | RRF over linear combination | Rank-based fusion is robust to score scale differences |
 | httpx over openai SDK | Zero magic, explicit timeouts, works in restricted environments |
-| Determisecurity standardic chunk IDs | Crash-safe restart without duplicates |
+| Deterministic chunk IDs | Crash-safe restart without duplicates |
 | Block-based chunking | Process 200K char blocks to cap RAM on 500-page PDFs |
 | Anti-sleep API | Prevent Windows from sleeping during 6+ hour overnight runs |
 | Structured logging | Machine-parseable logs with run_id for audit and debugging |
@@ -162,7 +162,7 @@ negligible quality loss for cosine similarity on normalized vectors.
 - API keys loaded from environment variables, never in config files or logs
 - No inbound ports, no listeners, no custom protocols
 - SQLite database is local file — access controlled by OS file permissions
-- Determisecurity standardic behavior: same input always produces same output
+- Deterministic behavior: same input always produces same output
 - All operations logged with run_id for audit trail
 - Compatible with ACAS scans (standard Python libraries, no exotic binaries)
 

@@ -202,6 +202,42 @@ def boot_hybridrag(config_path=None) -> BootResult:
         result.warnings.append(f"Credential resolution failed: {e}")
         logger.warning("BOOT Step 2 WARNING: %s", e)
 
+    # === STEP 2.5: Configure Network Gate ===
+    # The gate must be configured BEFORE any network calls (Steps 3-4).
+    # It reads the mode from config and the endpoint from credentials
+    # to build the access control policy.
+    logger.info("BOOT Step 2.5: Configuring network gate...")
+    try:
+        from src.core.network_gate import configure_gate
+
+        # Determine the mode and endpoint for the gate
+        boot_mode = config.get("mode", "offline") if isinstance(config, dict) else "offline"
+        boot_endpoint = ""
+        if result.credentials and result.credentials.endpoint:
+            boot_endpoint = result.credentials.endpoint
+        elif isinstance(config, dict):
+            boot_endpoint = config.get("api", {}).get("endpoint", "")
+
+        # Get allowed_endpoint_prefixes from config if available
+        allowed_prefixes = []
+        if isinstance(config, dict):
+            allowed_prefixes = config.get("api", {}).get("allowed_endpoint_prefixes", [])
+
+        gate = configure_gate(
+            mode=boot_mode,
+            api_endpoint=boot_endpoint,
+            allowed_prefixes=allowed_prefixes,
+        )
+        logger.info(
+            "BOOT Step 2.5: Network gate configured (mode=%s, endpoint=%s)",
+            boot_mode, boot_endpoint[:50] if boot_endpoint else "(none)",
+        )
+    except Exception as e:
+        # If the gate fails to configure, we continue with it in OFFLINE
+        # mode (the safe default). This is fail-closed behavior.
+        result.warnings.append(f"Network gate configuration failed: {e}")
+        logger.warning("BOOT Step 2.5: Gate config failed, defaulting to OFFLINE: %s", e)
+
     # === STEP 3: Build API Client (Online Mode) ===
     logger.info("BOOT Step 3: Building API client...")
     if result.credentials and result.credentials.is_online_ready:
@@ -232,7 +268,15 @@ def boot_hybridrag(config_path=None) -> BootResult:
     logger.info("BOOT Step 4: Checking Ollama...")
     try:
         import urllib.request
+        from src.core.network_gate import get_gate
+
         ollama_host = config.get("ollama", {}).get("host", "http://localhost:11434")
+
+        # Gate check (localhost is always allowed in offline and online modes)
+        get_gate().check_allowed(
+            f"{ollama_host}/api/tags", "ollama_boot_check", "boot",
+        )
+
         req = urllib.request.Request(
             f"{ollama_host}/api/tags",
             method="GET",

@@ -1,7 +1,9 @@
 api:
+  api_version: ''
+  deployment: ''
   endpoint: https://openrouter.ai/api/v1
   max_tokens: 2048
-  model: gpt-3.5-turbo
+  model: anthropic/claude-opus-4.6
   temperature: 0.1
   timeout_seconds: 30
 chunking:
@@ -18,14 +20,24 @@ embedding:
   device: cpu
   dimension: 384
   model_name: all-MiniLM-L6-v2
+hallucination_guard:
+  chunk_prune_k: 3
+  enable_dual_path: false
+  enabled: false
+  failure_action: block
+  model_cache_dir: .model_cache
+  nli_model: cross-encoder/nli-deberta-v3-base
+  shortcircuit_fail: 3
+  shortcircuit_pass: 5
+  threshold: 0.8
 indexing:
   block_chars: 200000
   max_chars_per_file: 2000000
-mode: online
+mode: offline
 ollama:
   base_url: http://localhost:11434
   context_window: 8192
-  model: llama3
+  model: qwen2.5:7b-instruct-q5_K_M
   timeout_seconds: 600
 paths:
   database: ''
@@ -37,7 +49,7 @@ retrieval:
   min_score: 0.3
   reranker_enabled: false
   reranker_model: cross-encoder/ms-marco-MiniLM-L-6-v2
-  reranker_top_n: 20
+  reranker_top_n: 12
   rrf_k: 60
   top_k: 5
 security:

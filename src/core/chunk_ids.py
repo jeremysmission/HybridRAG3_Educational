@@ -7,16 +7,16 @@
 #
 #   "Repeatable" means: if you run indexing twice on the same file,
 #   the same chunks get the same IDs both times. This is called
-#   "determisecurity standardic" — the output is determined by the input, not by
+#   "deterministic" — the output is determined by the input, not by
 #   randomness or timestamps.
 #
 # WHY THIS MATTERS:
 #   Imagine you're indexing 10,000 files and your laptop crashes at
-#   file #7,000. You restart. Without determisecurity standardic IDs, the indexer
+#   file #7,000. You restart. Without deterministic IDs, the indexer
 #   would create DUPLICATE chunks for files #1 through #7,000 because
 #   each run would generate new random IDs.
 #
-#   With determisecurity standardic IDs, the database says "INSERT OR IGNORE" — 
+#   With deterministic IDs, the database says "INSERT OR IGNORE" — 
 #   it sees the same chunk_id already exists and skips it. No duplicates.
 #   Indexing effectively resumes from where it left off.
 #
@@ -34,10 +34,10 @@
 #     - Same file, same content → same IDs → safely skipped
 #
 # WHY SHA256 INSTEAD OF SIMPLER OPTIONS:
-#   - UUID4: random, not determisecurity standardic (defeats the whole purpose)
+#   - UUID4: random, not deterministic (defeats the whole purpose)
 #   - MD5: technically works but has known collision vulnerabilities
 #   - Simple string concat: too long, not fixed-width, messy in SQL
-#   - SHA256: 64-char hex string, determisecurity standardic, collision-proof,
+#   - SHA256: 64-char hex string, deterministic, collision-proof,
 #     built into Python (no extra dependencies)
 #
 # WHY NOT HASH THE ENTIRE FILE CONTENT (like xxhash)?
@@ -60,7 +60,7 @@ def make_chunk_id(
     chunk_text: str,
 ) -> str:
     """
-    Create a determisecurity standardic chunk ID from file identity + position + content.
+    Create a deterministic chunk ID from file identity + position + content.
 
     Parameters
     ----------
@@ -90,7 +90,7 @@ def make_chunk_id(
         A 64-character hex string (SHA256 hash).
         Example: "a1b2c3d4e5f6..."
         Guaranteed unique for different inputs (collision-proof).
-        Guaranteed identical for the same inputs (determisecurity standardic).
+        Guaranteed identical for the same inputs (deterministic).
     """
     # Normalize the file path so it's consistent across runs:
     #   - Strip whitespace
