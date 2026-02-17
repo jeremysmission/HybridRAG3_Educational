@@ -161,13 +161,25 @@ class ApiCredentials:
 #   one name, we accept all of them and resolve in priority order.
 # ---------------------------------------------------------------------------
 
-_KEY_ENV_ALIASES = [
+# ---------------------------------------------------------------------------
+# PUBLIC CONSTANTS -- importable by any module that needs canonical names.
+# These are the SINGLE SOURCE OF TRUTH for credential naming.
+#
+# If you need keyring names or env var lists in another file, import these:
+#   from src.security.credentials import KEYRING_SERVICE, KEY_ENV_ALIASES
+#
+# DO NOT hardcode keyring service/key names anywhere else.
+# DO NOT duplicate these env var lists anywhere else.
+# ---------------------------------------------------------------------------
+
+KEY_ENV_ALIASES = [
     "HYBRIDRAG_API_KEY",
     "AZURE_OPENAI_API_KEY",
+    "AZURE_OPEN_AI_KEY",         # Company variant (also used by LLMRouter)
     "OPENAI_API_KEY",
 ]
 
-_ENDPOINT_ENV_ALIASES = [
+ENDPOINT_ENV_ALIASES = [
     "HYBRIDRAG_API_ENDPOINT",
     "AZURE_OPENAI_ENDPOINT",
     "OPENAI_API_ENDPOINT",
@@ -175,7 +187,7 @@ _ENDPOINT_ENV_ALIASES = [
     "OPENAI_BASE_URL",
 ]
 
-_DEPLOYMENT_ENV_ALIASES = [
+DEPLOYMENT_ENV_ALIASES = [
     "AZURE_OPENAI_DEPLOYMENT",
     "AZURE_DEPLOYMENT",
     "OPENAI_DEPLOYMENT",
@@ -184,17 +196,26 @@ _DEPLOYMENT_ENV_ALIASES = [
     "AZURE_CHAT_DEPLOYMENT",
 ]
 
-_API_VERSION_ENV_ALIASES = [
+API_VERSION_ENV_ALIASES = [
     "AZURE_OPENAI_API_VERSION",
     "AZURE_API_VERSION",
     "OPENAI_API_VERSION",
     "API_VERSION",
 ]
 
-# Keyring service and key names
-_KEYRING_SERVICE = "hybridrag"
-_KEYRING_KEY_NAME = "azure_api_key"
-_KEYRING_ENDPOINT_NAME = "azure_endpoint"
+# Keyring service and key names (PUBLIC -- import these, don't hardcode)
+KEYRING_SERVICE = "hybridrag"
+KEYRING_KEY_NAME = "azure_api_key"
+KEYRING_ENDPOINT_NAME = "azure_endpoint"
+
+# Backward-compatible aliases (underscore versions still work)
+_KEY_ENV_ALIASES = KEY_ENV_ALIASES
+_ENDPOINT_ENV_ALIASES = ENDPOINT_ENV_ALIASES
+_DEPLOYMENT_ENV_ALIASES = DEPLOYMENT_ENV_ALIASES
+_API_VERSION_ENV_ALIASES = API_VERSION_ENV_ALIASES
+_KEYRING_SERVICE = KEYRING_SERVICE
+_KEYRING_KEY_NAME = KEYRING_KEY_NAME
+_KEYRING_ENDPOINT_NAME = KEYRING_ENDPOINT_NAME
 
 
 # ---------------------------------------------------------------------------
@@ -506,3 +527,144 @@ def get_api_endpoint():
     """Get API endpoint from keyring or env vars. Returns None if not found."""
     creds = resolve_credentials()
     return creds.endpoint
+
+
+# ---------------------------------------------------------------------------
+# STATUS FUNCTION: Used by _check_creds.py and rag-mode-online
+# ---------------------------------------------------------------------------
+# WHY THIS EXISTS:
+#   rag-mode-online needs to check if credentials are stored BEFORE
+#   switching modes. This function returns a simple dict that the
+#   PowerShell wrapper can parse to decide whether to proceed.
+#
+#   Example return value:
+#     {
+#         'api_key_set': True,
+#         'api_endpoint_set': True,
+#         'api_key_source': 'keyring',
+#         'api_endpoint_source': 'keyring',
+#     }
+# ---------------------------------------------------------------------------
+
+def credential_status():
+    """
+    Check what credentials are currently stored/available.
+
+    Returns:
+        dict with keys:
+            api_key_set (bool): True if an API key was found anywhere
+            api_endpoint_set (bool): True if an endpoint was found anywhere
+            api_key_source (str): Where the key came from ('keyring', 'env:VAR', 'config', 'none')
+            api_endpoint_source (str): Where the endpoint came from
+    """
+    creds = resolve_credentials()
+    return {
+        'api_key_set': creds.has_key,
+        'api_endpoint_set': creds.has_endpoint,
+        'api_key_source': creds.source_key or 'none',
+        'api_endpoint_source': creds.source_endpoint or 'none',
+    }
+
+
+# ---------------------------------------------------------------------------
+# CLI HANDLER: Called by rag-store-key, rag-store-endpoint, etc.
+# ---------------------------------------------------------------------------
+# WHY THIS EXISTS:
+#   api_mode_commands.ps1 calls:
+#     python -m src.security.credentials store
+#     python -m src.security.credentials endpoint
+#     python -m src.security.credentials status
+#     python -m src.security.credentials delete
+#
+#   Without this __main__ block, those commands do nothing.
+#   This was a known bug from February 2026 that caused rag-store-key
+#   to silently exit without prompting for a key.
+#
+# SECURITY NOTE:
+#   The key is read via getpass (hidden input on Windows).
+#   It is NEVER echoed to the screen or written to any file.
+#   It goes straight from your keyboard to Windows Credential Manager.
+# ---------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    import sys
+    import getpass
+
+    # Determine which subcommand was requested
+    command = sys.argv[1] if len(sys.argv) > 1 else "status"
+
+    if command == "store":
+        # rag-store-key calls this
+        # getpass hides the input so the key never appears on screen
+        print("Enter your API key (input is hidden):")
+        try:
+            key = getpass.getpass(prompt="API Key: ")
+        except EOFError:
+            # Handle case where input is piped or redirected
+            key = input("API Key: ")
+
+        if not key or not key.strip():
+            print("ERROR: No key entered. Nothing stored.")
+            sys.exit(1)
+
+        key = key.strip()
+        store_api_key(key)
+        print("API key stored in Windows Credential Manager.")
+        print("Key preview: " + key[:4] + "..." + key[-4:] if len(key) > 8 else "****")
+
+    elif command == "endpoint":
+        # rag-store-endpoint calls this
+        print("Enter your API endpoint URL:")
+        try:
+            endpoint = input("Endpoint: ")
+        except EOFError:
+            endpoint = ""
+
+        if not endpoint or not endpoint.strip():
+            print("ERROR: No endpoint entered. Nothing stored.")
+            sys.exit(1)
+
+        endpoint = endpoint.strip()
+
+        # Validate before storing
+        try:
+            endpoint = validate_endpoint(endpoint)
+        except Exception as e:
+            print(f"ERROR: Invalid endpoint URL: {e}")
+            sys.exit(1)
+
+        store_endpoint(endpoint)
+        print(f"Endpoint stored: {endpoint}")
+
+    elif command == "status":
+        # rag-cred-status calls this
+        status = credential_status()
+        creds = resolve_credentials()
+
+        print("")
+        print("  Credential Status:")
+        print("  ------------------")
+        print(f"  API Key:    {'STORED' if status['api_key_set'] else 'NOT SET'}"
+              f"  (source: {status['api_key_source']})")
+        if status['api_key_set']:
+            print(f"  Key preview: {creds.key_preview}")
+        print(f"  Endpoint:   {'STORED' if status['api_endpoint_set'] else 'NOT SET'}"
+              f"  (source: {status['api_endpoint_source']})")
+        if status['api_endpoint_set']:
+            print(f"  Endpoint:   {creds.endpoint}")
+        if creds.deployment:
+            print(f"  Deployment: {creds.deployment} (source: {creds.source_deployment})")
+        if creds.api_version:
+            print(f"  API Ver:    {creds.api_version} (source: {creds.source_api_version})")
+        print(f"  Online ready: {creds.is_online_ready}")
+        print("")
+
+    elif command == "delete":
+        # rag-cred-delete calls this
+        clear_credentials()
+        print("All credentials removed from Windows Credential Manager.")
+
+    else:
+        print(f"Unknown command: {command}")
+        print("Usage: python -m src.security.credentials [store|endpoint|status|delete]")
+        sys.exit(1)

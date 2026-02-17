@@ -2,7 +2,7 @@
 # ============================================================================
 # Reference document -- print this, bookmark it, keep it on your phone.
 # Established across sessions Feb 8-14, 2026.
-# Updated: Feb 15, 2026 (Claude/AI references, virtual test framework)
+# Updated: Feb 15, 2026 (AI assistant/AI references, virtual test framework)
 # ============================================================================
 
 
@@ -63,7 +63,7 @@ EXCLUDES (via .gitignore):
 - embeddings.f16.dat, embeddings_meta.json (memmap files)
 - logs/ (generated at runtime)
 - API keys (stored in Windows Credential Manager, not files)
-- Session transcripts (claude_sessions/)
+- Session transcripts (AI assistant_sessions/)
 - Primers (primers/)
 - Handover docs (handover/)
 - Chat history (chat_history/)
@@ -81,7 +81,7 @@ INCLUDES:
 
 NEVER INCLUDES:
 - Any mention of: enterprise, organization, corporate, restricted, ORG, company names
-- Any mention of: Claude, Anthropic, claude.ai (reveals AI-assisted development)
+- Any mention of: AI assistant, AI provider, AI assistant.ai (reveals AI-assisted development)
 - Virtual test framework (tests/virtual_test_*.py, docs/VIRTUAL_TESTING.md)
 - Personal paths ({SOURCE_DIR}, {DATA_DIR})
 - API keys or credentials
@@ -123,19 +123,19 @@ BANNED WORDS (never appear in HybridRAG3_Educational):
 - security standard, industry, framework, regulatory, sensitive data, compliance framework, authorization
 
 ### AI Assistant References
-- Claude (the AI assistant)
-- Anthropic
-- claude.ai
-- virtual_test (Claude-specific test methodology)
+- AI assistant (the AI assistant)
+- AI provider
+- AI assistant.ai
+- virtual_test (AI assistant-specific test methodology)
 - Any reference to AI-assisted development methodology
 
 REPLACEMENT PATTERNS:
 - "enterprise environment" -> "enterprise environment"
 - "restricted network" -> "offline network"
 - "corporate proxy" -> "enterprise proxy"
-- "Claude" -> "AI assistant"
-- "Anthropic" -> "AI provider"
-- "Anthropic Claude" -> "cloud LLM provider"
+- "AI assistant" -> "AI assistant"
+- "AI provider" -> "AI provider"
+- "AI provider AI assistant" -> "cloud LLM provider"
 - Company-specific paths -> generic placeholders like {DATA_DIR}
 
 README FRAMING:
@@ -147,7 +147,7 @@ README FRAMING:
 FILES BLOCKED FROM EDUCATIONAL (by sync_to_educational.py):
 - virtual_test_framework.py, virtual_test_TEMPLATE.py, virtual_test_*.py
 - VIRTUAL_TESTING.md
-- TIERED_MEMORY_DESIGN.md (7 Claude references)
+- TIERED_MEMORY_DESIGN.md (7 AI assistant references)
 - SECURITY_AUDIT_ROADMAP.txt
 - spawn_eng/ folder
 - sync_to_educational.py (meta -- don't copy the sanitizer itself)
@@ -172,7 +172,7 @@ git status
 git diff --cached --name-only
 
 # Check for accidental sensitive content
-Select-String -Path (git diff --cached --name-only) -Pattern "enterprise|organization|restricted|ORG|Claude|Anthropic" -SimpleMatch
+Select-String -Path (git diff --cached --name-only) -Pattern "enterprise|organization|restricted|ORG|AI assistant|AI provider" -SimpleMatch
 ```
 
 ### Work Transfer (when needed)

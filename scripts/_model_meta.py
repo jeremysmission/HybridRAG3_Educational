@@ -134,12 +134,12 @@ KNOWN_MODELS = {
     "o3-mini":          {"ctx": 200000,  "price_in": 1.10,   "price_out": 4.40,   "tier_eng": 89, "tier_gen": 80, "family": "OpenAI",    "note": "Efficient reasoning"},
     "o4-mini":          {"ctx": 200000,  "price_in": 1.10,   "price_out": 4.40,   "tier_eng": 91, "tier_gen": 82, "family": "OpenAI",    "note": "Latest efficient reasoning"},
 
-    # ---- Anthropic Claude Family ----
-    "claude-3.7-sonnet":  {"ctx": 200000, "price_in": 3.0,   "price_out": 15.0,   "tier_eng": 94, "tier_gen": 95, "family": "Anthropic", "note": "Extended thinking, 200K ctx"},
-    "claude-3.5-sonnet":  {"ctx": 200000, "price_in": 3.0,   "price_out": 15.0,   "tier_eng": 92, "tier_gen": 93, "family": "Anthropic", "note": "Strong all-around, 200K ctx"},
-    "claude-3.5-haiku":   {"ctx": 200000, "price_in": 0.80,  "price_out": 4.0,    "tier_eng": 75, "tier_gen": 78, "family": "Anthropic", "note": "Fast and affordable, 200K ctx"},
-    "claude-3-haiku":     {"ctx": 200000, "price_in": 0.25,  "price_out": 1.25,   "tier_eng": 60, "tier_gen": 65, "family": "Anthropic", "note": "Previous fast model"},
-    "claude-3-opus":      {"ctx": 200000, "price_in": 15.0,  "price_out": 75.0,   "tier_eng": 90, "tier_gen": 92, "family": "Anthropic", "note": "Most capable Claude 3"},
+    # ---- AI provider AI assistant Family ----
+    "AI assistant-3.7-sonnet":  {"ctx": 200000, "price_in": 3.0,   "price_out": 15.0,   "tier_eng": 94, "tier_gen": 95, "family": "AI provider", "note": "Extended thinking, 200K ctx"},
+    "AI assistant-3.5-sonnet":  {"ctx": 200000, "price_in": 3.0,   "price_out": 15.0,   "tier_eng": 92, "tier_gen": 93, "family": "AI provider", "note": "Strong all-around, 200K ctx"},
+    "AI assistant-3.5-haiku":   {"ctx": 200000, "price_in": 0.80,  "price_out": 4.0,    "tier_eng": 75, "tier_gen": 78, "family": "AI provider", "note": "Fast and affordable, 200K ctx"},
+    "AI assistant-3-haiku":     {"ctx": 200000, "price_in": 0.25,  "price_out": 1.25,   "tier_eng": 60, "tier_gen": 65, "family": "AI provider", "note": "Previous fast model"},
+    "AI assistant-3-opus":      {"ctx": 200000, "price_in": 15.0,  "price_out": 75.0,   "tier_eng": 90, "tier_gen": 92, "family": "AI provider", "note": "Most capable AI assistant 3"},
 
     # ---- Meta Llama Family ----
     # Llama: strong general knowledge (MMLU), slightly behind Qwen on STEM
@@ -457,8 +457,8 @@ _ONLINE_FAMILY_PATTERNS = [
     ("mistral",    +0,  +2),
     ("mixtral",    +2,  +1),
 
-    # Claude: balanced, slight GEN advantage
-    ("claude",     +0,  +2),
+    # AI assistant: balanced, slight GEN advantage
+    ("AI assistant",     +0,  +2),
 
     # GPT: balanced to slight GEN advantage
     ("gpt",        +0,  +2),

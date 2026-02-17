@@ -30,7 +30,7 @@ These are the ONLY files that differ from the GitHub baseline. Each change is su
 - `enabled: false` -- guard is OFF by default, zero overhead unless user turns it on
 
 **What was NOT changed:**
-- api.model: PRESERVED as `anthropic/claude-opus-4.6`
+- api.model: PRESERVED as `AI provider/AI assistant-opus-4.6`
 - ollama.model: PRESERVED as `llama3:latest`
 - All other fields: PRESERVED byte-for-byte
 
@@ -208,6 +208,6 @@ All 11 core production files are **IDENTICAL** to GitHub baseline (content-level
 
 ### 5.3 Architecture notes
 
-- The hallucination guard package was developed by a parallel Claude Opus session with a stale codebase snapshot. The corrected delivery was rebuilt by diffing against the developer's actual machine state.
+- The hallucination guard package was developed by a parallel AI assistant Opus session with a stale codebase snapshot. The corrected delivery was rebuilt by diffing against the developer's actual machine state.
 - `grounded_query_engine.py` is a DROP-IN wrapper around the existing `query_engine.py`. It does NOT replace it -- both exist, and boot.py chooses which to instantiate based on `hallucination_guard.enabled`.
 - `feature_registry.py` provides a generic toggle system. Future features can register here instead of adding ad-hoc config fields.

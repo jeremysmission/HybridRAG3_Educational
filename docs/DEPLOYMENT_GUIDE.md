@@ -410,7 +410,7 @@ These files were NOT modified:
 | {KNOWLEDGE_BASE}\LimitlessApp | YES (regex only) | fact_extractor + claim_verifier |
 
 Banned words removed: ORG, Organization, Organization, restricted, regulatory,
-sensitive data, authorization, Claude, Anthropic. Verified by SIM-17 sanitization tests.
+sensitive data, authorization, AI assistant, AI provider. Verified by SIM-17 sanitization tests.
 
 ---
 

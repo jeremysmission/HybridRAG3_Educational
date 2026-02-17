@@ -21,13 +21,32 @@
 #   crash from running out of memory. On a 64GB machine, batch 128
 #   is comfortable and indexes 8x faster than batch 16.
 #
+# PORTABILITY:
+#   Uses HYBRIDRAG_PROJECT_ROOT env var to find config on any machine.
+#   Falls back to current directory if the env var is not set.
+#
 # INTERNET ACCESS: NONE. Only reads a local file.
 # ============================================================================
 
+import os
 import yaml
 
-# Read the config file
-with open('config/default_config.yaml', 'r') as f:
+
+def _config_path():
+    """Build the full path to default_config.yaml using the project root.
+
+    WHY THIS EXISTS:
+      If PowerShell's working directory is not the repo root, a bare
+      relative path like 'config/default_config.yaml' would fail.
+      HYBRIDRAG_PROJECT_ROOT (set by start_hybridrag.ps1) ensures we
+      always find the config regardless of the current directory.
+    """
+    root = os.environ.get('HYBRIDRAG_PROJECT_ROOT', '.')
+    return os.path.join(root, 'config', 'default_config.yaml')
+
+
+# Read the config file using the portable path
+with open(_config_path(), 'r') as f:
     cfg = yaml.safe_load(f)
 
 # Extract the key settings that define a profile.

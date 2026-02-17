@@ -134,7 +134,7 @@ The HF lockdown and the API mode are completely independent controls.
 
 ### Online / API Mode
 
-- LLM: Cloud API (OpenAI, Anthropic Claude, etc.)
+- LLM: Cloud API (OpenAI, AI provider AI assistant, etc.)
 - Network: ONLY connects to configured API URL
 - Speed: ~5-15 seconds per query
 - Quality: Much better answers from larger models

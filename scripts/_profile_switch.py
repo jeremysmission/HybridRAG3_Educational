@@ -47,13 +47,32 @@
 #   new batch size to take effect. Existing indexed data still works
 #   fine with any profile - only indexing speed changes.
 #
+# PORTABILITY:
+#   Uses HYBRIDRAG_PROJECT_ROOT env var to find config on any machine.
+#   Falls back to current directory if the env var is not set.
+#
 # INTERNET ACCESS: NONE. Only modifies a local file.
 # ============================================================================
 
+import os
 import sys
 import yaml
 
-# ── Define the three profiles ──
+
+def _config_path():
+    """Build the full path to default_config.yaml using the project root.
+
+    WHY THIS EXISTS:
+      If PowerShell's working directory is not the repo root, a bare
+      relative path like 'config/default_config.yaml' would fail.
+      HYBRIDRAG_PROJECT_ROOT (set by start_hybridrag.ps1) ensures we
+      always find the config regardless of the current directory.
+    """
+    root = os.environ.get('HYBRIDRAG_PROJECT_ROOT', '.')
+    return os.path.join(root, 'config', 'default_config.yaml')
+
+
+# -- Define the three profiles --
 # Each profile is a dictionary of settings that get written into the
 # config YAML file. The keys (like 'embedding', 'vector_search') match
 # the section names in default_config.yaml.
@@ -75,7 +94,7 @@ profiles = {
     },
 }
 
-# ── Read the command-line argument ──
+# -- Read the command-line argument --
 # sys.argv is a list of arguments passed to this script.
 # sys.argv[0] is the script name itself (_profile_switch.py)
 # sys.argv[1] is the profile name (laptop_safe, desktop_power, or server_max)
@@ -86,28 +105,30 @@ if len(sys.argv) < 2 or sys.argv[1] not in profiles:
 profile = sys.argv[1]
 settings = profiles[profile]
 
-# ── Read the current config ──
-with open('config/default_config.yaml', 'r') as f:
+# -- Read the current config --
+cfg_file = _config_path()
+with open(cfg_file, 'r') as f:
     cfg = yaml.safe_load(f)
 
-# ── Apply the profile settings (deep merge) ──
+# -- Apply the profile settings (deep merge) --
 # "Deep merge" means we only change the specific keys in each section,
 # leaving all other settings untouched. For example, if the 'embedding'
 # section also has a 'model_name' setting, we don't touch it - we only
 # change 'batch_size'.
-for section, values in settings.items():
+for section_name, values in settings.items():
     # If the section doesn't exist in the config yet, create it
-    if section not in cfg:
-        cfg[section] = {}
+    if section_name not in cfg:
+        cfg[section_name] = {}
     # Update each individual setting within the section
     for key, val in values.items():
-        cfg[section][key] = val
+        cfg[section_name][key] = val
 
-# ── Save the updated config ──
-with open('config/default_config.yaml', 'w') as f:
+# -- Save the updated config --
+# IMPORTANT: read and write are separate operations (never in one expression)
+with open(cfg_file, 'w') as f:
     yaml.dump(cfg, f, default_flow_style=False)
 
-# ── Print confirmation ──
+# -- Print confirmation --
 desc = {
     'laptop_safe': 'Conservative - stability on 8-16GB RAM (batch=16)',
     'desktop_power': 'Aggressive - throughput on 32-64GB RAM (batch=64)',

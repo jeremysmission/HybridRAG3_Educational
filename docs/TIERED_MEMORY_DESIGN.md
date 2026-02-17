@@ -1,13 +1,13 @@
 # Tiered Memory System -- Design Document
 
 **Version:** 1.0.0
-**Author:** the developer (RF/AI Engineer) + Claude
+**Author:** the developer (RF/AI Engineer) + AI assistant
 **Date:** 2026-02-13
 **Status:** Design complete, implementation Sprint 3+
 
 ## Problem
 
-A single primer from a single session captures one conversation. After 30 sessions, you have 30 separate primers. Uploading all 30 to a new Claude session would blow the context window (~150KB total vs ~200K token limit). You need a compression hierarchy that rolls daily knowledge into weekly summaries, and weekly into monthly -- so the upload is always a fixed, manageable size regardless of how many sessions you've had.
+A single primer from a single session captures one conversation. After 30 sessions, you have 30 separate primers. Uploading all 30 to a new AI assistant session would blow the context window (~150KB total vs ~200K token limit). You need a compression hierarchy that rolls daily knowledge into weekly summaries, and weekly into monthly -- so the upload is always a fixed, manageable size regardless of how many sessions you've had.
 
 ## Design: Three-Tier Rollup
 
@@ -21,7 +21,7 @@ Tier 2: WEEKLY primers    (one per week, ~4-8KB, compressed)
 Tier 3: MONTHLY primers   (one per month, ~6-10KB, strategic)
 ```
 
-### What Gets Uploaded to Claude
+### What Gets Uploaded to AI assistant
 
 For any new session, the upload package is:
 
@@ -62,7 +62,7 @@ graph LR
         M1 --> UP[upload_primer.py]
         W1 --> UP
         D1 --> UP
-        UP --> CL[New Claude Session]
+        UP --> CL[New AI assistant Session]
     end
 ```
 
@@ -162,7 +162,7 @@ primers/
 ```python
 def assemble_upload():
     """
-    Build the upload package for a new Claude session.
+    Build the upload package for a new AI assistant session.
 
     STRATEGY:
     - Most recent monthly = long-term memory (who am I, what's the project)
@@ -389,7 +389,7 @@ class UploadAssembler:
     Builds the upload package from the latest primer at each tier.
 
     INVARIANT: Upload package is always < 35KB (~8,750 tokens).
-    This ensures it fits in Claude's context with room for the
+    This ensures it fits in AI assistant's context with room for the
     actual conversation.
     """
 
@@ -480,7 +480,7 @@ class UploadAssembler:
 | Daily primer | After each `save_session.py` (event-driven) | `primer_generator.py` | ~5-15 min (laptop) |
 | Weekly rollup | Sunday 10:15 PM (after nightly_run) | `weekly_rollup.py` | ~3-5 min |
 | Monthly rollup | 1st of month, 10:30 PM | `monthly_rollup.py` | ~3-5 min |
-| Upload assembly | Before each new Claude session | `upload_primer.py` | <1 sec (no LLM) |
+| Upload assembly | Before each new AI assistant session | `upload_primer.py` | <1 sec (no LLM) |
 | Archive cleanup | Monthly, after rollup | `archive_cleanup.py` | <1 sec |
 
 ## YAML Rollup Prompts (New)

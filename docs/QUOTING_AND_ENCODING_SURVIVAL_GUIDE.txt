@@ -5,7 +5,7 @@ WHY YOU KEEP HITTING SYNTAX ERRORS (AND HOW TO NEVER HIT THEM AGAIN)
 ================================================================================
 
 THE PROBLEM:
-When you copy code from Claude, ChatGPT, Word, Outlook, or any web browser,
+When you copy code from AI assistant, ChatGPT, Word, Outlook, or any web browser,
 invisible character substitutions happen. These look identical on screen but
 break PowerShell and Python silently.
 
@@ -22,7 +22,7 @@ THE VILLAINS (characters that look right but are WRONG):
   ellipsis char          ... (three dots)      One char not three
 
 WHERE THEY COME FROM:
-  1. Claude/ChatGPT output sometimes uses smart quotes in explanations
+  1. AI assistant/ChatGPT output sometimes uses smart quotes in explanations
   2. Web browsers auto-convert quotes when you copy from rendered HTML
   3. Word/Outlook always converts to smart quotes by default
   4. Some PDF viewers substitute characters on copy
@@ -34,7 +34,7 @@ RULE 1: ALWAYS PASTE INTO NOTEPAD FIRST
 
   The number one habit that prevents 90 percent of these errors:
 
-  1. Copy code from Claude
+  1. Copy code from AI assistant
   2. Open plain Notepad (Win+R, type notepad, Enter)
   3. Paste into Notepad (this strips ALL formatting)
   4. Select All (Ctrl+A) in Notepad

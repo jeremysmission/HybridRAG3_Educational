@@ -47,6 +47,20 @@ from _model_meta import (
     use_case_score,
 )
 
+
+def _config_path():
+    """Build the full path to default_config.yaml using the project root.
+
+    WHY THIS EXISTS:
+      If PowerShell's working directory is not the repo root, a bare
+      relative path like 'config/default_config.yaml' would fail.
+      HYBRIDRAG_PROJECT_ROOT (set by start_hybridrag.ps1) ensures we
+      always find the config regardless of the current directory.
+    """
+    root = os.environ.get('HYBRIDRAG_PROJECT_ROOT', '.')
+    return os.path.join(root, 'config', 'default_config.yaml')
+
+
 TI = 1000   # tokens in per Q&A
 TO = 500    # tokens out per Q&A
 QB = 1      # per-question pricing
@@ -104,7 +118,7 @@ def _resolve_creds():
             if val: endpoint = val; break
     if not endpoint:
         try:
-            with open("config/default_config.yaml", "r") as f:
+            with open(_config_path(), "r") as f:
                 cfg = yaml.safe_load(f)
             endpoint = cfg.get("api", {}).get("endpoint", "")
         except Exception:
@@ -539,7 +553,7 @@ def prompt_pick_fallback(uc_key, current_model, endpoint):
 
 def main():
     try:
-        with open("config/default_config.yaml", "r") as f:
+        with open(_config_path(), "r") as f:
             cfg = yaml.safe_load(f)
     except FileNotFoundError:
         print("  [FAIL] config/default_config.yaml not found")
@@ -579,7 +593,7 @@ def main():
         if "api" not in cfg: cfg["api"] = {}
         cfg["api"]["model"] = chosen
 
-    with open("config/default_config.yaml", "w") as f:
+    with open(_config_path(), "w") as f:
         yaml.dump(cfg, f, default_flow_style=False)
 
     # Confirmation

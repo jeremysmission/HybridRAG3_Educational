@@ -3,7 +3,7 @@ api:
   deployment: ''
   endpoint: https://openrouter.ai/api/v1
   max_tokens: 2048
-  model: anthropic/claude-opus-4.6
+  model: AI provider/AI assistant-opus-4.6
   temperature: 0.1
   timeout_seconds: 30
 chunking:
@@ -33,7 +33,7 @@ hallucination_guard:
 indexing:
   block_chars: 200000
   max_chars_per_file: 2000000
-mode: offline
+mode: online
 ollama:
   base_url: http://localhost:11434
   context_window: 8192
