@@ -29,9 +29,10 @@
 #   - Logs every request (URL + method + status, never the body or key)
 #   - Configurable via config.yaml, not hardcoded
 #
-# NETWORK KILL SWITCH:
-#   Set HYBRIDRAG_OFFLINE=1 to block ALL outbound HTTP requests.
-#   This is the master network kill switch for offline environments.
+# NETWORK ACCESS CONTROL:
+#   Network access is controlled by the centralized NetworkGate
+#   (network_gate.py), which enforces offline/online/admin modes.
+#   The HYBRIDRAG_OFFLINE env var is checked by the gate at startup.
 # ===========================================================================
 
 from __future__ import annotations
@@ -98,23 +99,76 @@ class HttpResponse:
         latency_seconds: How long the request took.
         error: Error message if the request failed at the network level.
         is_success: True if status_code is 2xx.
+        request_url: The URL that was requested (for diagnostics).
     """
     status_code: int = 0
     body: str = ""
     headers: Dict[str, str] = field(default_factory=dict)
     latency_seconds: float = 0.0
     error: Optional[str] = None
+    request_url: str = ""
 
     @property
     def is_success(self) -> bool:
         return 200 <= self.status_code < 300
 
+    @property
+    def content_type(self) -> str:
+        """Extract Content-Type header (case-insensitive lookup)."""
+        for key, val in self.headers.items():
+            if key.lower() == "content-type":
+                return val.lower()
+        return ""
+
     def json(self) -> dict:
-        """Parse body as JSON. Returns empty dict on failure."""
+        """
+        Parse body as JSON with content-type validation.
+
+        WHY CONTENT-TYPE CHECK:
+            Corporate proxies, captive portals, and WAF pages often return
+            HTTP 200 with an HTML body. Without this check, the HTML gets
+            parsed as JSON, fails silently (returns {}), and the caller
+            sees "no response" with zero diagnostic information.
+
+        WHAT THIS DOES:
+            1. Checks Content-Type header for "application/json"
+            2. If it's HTML or non-JSON, returns a diagnostic dict
+               instead of silently swallowing the error
+            3. If JSON parsing fails, includes body preview for forensics
+
+        Returns:
+            Parsed JSON dict, or a diagnostic dict with _parse_error key.
+        """
+        # -- Content-Type validation --
+        ct = self.content_type
+        if ct and "json" not in ct:
+            # This is the proxy/captive portal/WAF detection.
+            # Instead of returning {} and losing all forensic info,
+            # we return a diagnostic dict that the caller can check.
+            body_preview = self.body[:200] if self.body else "(empty)"
+            return {
+                "_parse_error": "non_json_content_type",
+                "_content_type": ct,
+                "_status_code": self.status_code,
+                "_body_preview": body_preview,
+                "_request_url": self.request_url,
+                "_body_length": len(self.body) if self.body else 0,
+            }
+
+        # -- JSON parsing with forensics --
         try:
             return json.loads(self.body)
-        except (json.JSONDecodeError, TypeError):
-            return {}
+        except (json.JSONDecodeError, TypeError) as e:
+            body_preview = self.body[:200] if self.body else "(empty)"
+            return {
+                "_parse_error": "json_decode_failed",
+                "_error_detail": str(e),
+                "_content_type": ct or "(not set)",
+                "_status_code": self.status_code,
+                "_body_preview": body_preview,
+                "_request_url": self.request_url,
+                "_body_length": len(self.body) if self.body else 0,
+            }
 
 
 # ---------------------------------------------------------------------------
@@ -137,13 +191,10 @@ class HttpClient:
     def __init__(self, config: Optional[HttpClientConfig] = None):
         self.config = config or HttpClientConfig()
 
-        # Legacy kill switch check (backward compatible)
-        # The centralized NetworkGate now handles all access control,
-        # but we still respect HYBRIDRAG_OFFLINE for backward compatibility
-        # and as a secondary enforcement layer (enterprise-in-depth).
-        if os.environ.get("HYBRIDRAG_OFFLINE", "").strip() in ("1", "true", "yes"):
-            self.config.offline_mode = True
-            logger.info("NETWORK KILL SWITCH: HYBRIDRAG_OFFLINE is set -- all HTTP blocked")
+        # NOTE: The HYBRIDRAG_OFFLINE env var is now handled by the
+        # centralized NetworkGate (network_gate.py). If that env var
+        # is set, the gate forces offline mode and blocks all outbound
+        # traffic. We no longer need a duplicate check here.
 
         # Build SSL context once (reused for all requests)
         self._ssl_context = self._build_ssl_context()
@@ -241,12 +292,15 @@ class HttpClient:
             ProxyError,
         )
 
-        # --- Kill switch check (legacy, backward compatible) ---
+        # --- Offline mode check (if config explicitly set) ---
+        # NOTE: The HYBRIDRAG_OFFLINE env var is now handled by the
+        # NetworkGate. This only fires if someone creates an HttpClient
+        # with offline_mode=True in the config object directly.
         if self.config.offline_mode:
-            logger.warning("HTTP blocked by offline mode: %s %s", method, url)
+            logger.warning("HTTP blocked by offline config: %s %s", method, url)
             return HttpResponse(
                 status_code=0,
-                error="Network requests blocked. HYBRIDRAG_OFFLINE is enabled.",
+                error="Network requests blocked. HttpClient offline_mode is enabled.",
             )
 
         # --- Network gate check (centralized access control) ---
@@ -254,9 +308,9 @@ class HttpClient:
             from src.core.network_gate import get_gate
             get_gate().check_allowed(url, "http_request", "http_client")
         except ImportError:
-            # Gate module not available (shouldn't happen, but fail-open
-            # here because the legacy kill switch above already caught
-            # the truly offline case)
+            # Gate module not available -- fail-open here since the
+            # gate is the primary access control and its absence is
+            # a startup configuration error, not a runtime issue.
             pass
         except Exception as gate_error:
             logger.warning("HTTP blocked by network gate: %s %s -- %s", method, url, gate_error)

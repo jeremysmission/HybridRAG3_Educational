@@ -93,7 +93,8 @@ AZURE_URL_PATTERNS = [
 ]
 
 # Default API version for Azure if not specified anywhere
-DEFAULT_AZURE_API_VERSION = "2024-02-01"
+# IMPORTANT: Must match llm_router.py _DEFAULT_API_VERSION
+DEFAULT_AZURE_API_VERSION = "2024-02-02"
 
 
 # ---------------------------------------------------------------------------
@@ -314,7 +315,7 @@ class ApiClientFactory:
           provider: "azure"          # or "openai" or "auto"
           auth_scheme: "api_key"     # or "bearer" or "auto"
           deployment: "gpt-35-turbo" # Azure deployment name
-          api_version: "2024-02-01"  # Azure API version
+          api_version: "2024-02-02"  # Azure API version
           model: "gpt-3.5-turbo"    # OpenAI model name (if provider is openai)
     """
 
@@ -482,7 +483,7 @@ class ApiClientFactory:
         """
         Resolve the Azure API version.
 
-        For Azure, defaults to 2024-02-01 if not specified.
+        For Azure, defaults to 2024-02-02 if not specified.
         For OpenAI, not used.
         """
         if provider != "azure":

@@ -226,9 +226,9 @@ def test_security_endpoint() -> TestResult:
 
 
 def test_security_network() -> TestResult:
-    """Audit network-capable code and check for kill switch."""
+    """Audit network-capable code and verify NetworkGate is in control."""
     try:
-        d = {"net_files": [], "urls": [], "kill_switch": False}
+        d = {"net_files": [], "urls": [], "gate_present": False}
         src_dir = PROJ_ROOT / "src"
         if not src_dir.exists():
             return TestResult("security_net", "Security", "SKIP", "No src/")
@@ -244,18 +244,19 @@ def test_security_network() -> TestResult:
                     d["net_files"].append(rp)
                 for u in url_re.findall(t):
                     d["urls"].append({"file": rp, "url": u.rstrip('",)')})
-                if any(k in t for k in ["network_enabled", "disable_network", "kill_switch"]):
-                    d["kill_switch"] = True
+                # Check for NetworkGate usage (the centralized access control)
+                if "network_gate" in t or "NetworkGate" in t or "check_allowed" in t:
+                    d["gate_present"] = True
             except Exception:
                 pass
         d["net_files"] = sorted(set(d["net_files"]))
         n = len(d["net_files"])
-        if n > 0 and not d["kill_switch"]:
+        if n > 0 and not d["gate_present"]:
             return TestResult("security_net", "Security", "WARN",
-                f"{n} network files, NO kill switch", d,
-                fix_hint="Add network_enabled toggle to Config.")
+                f"{n} network files, NetworkGate not found", d,
+                fix_hint="Ensure network_gate.py is imported and check_allowed() is called.")
         return TestResult("security_net", "Security", "PASS",
-            f"Audit: {n} files, kill_switch={d['kill_switch']}", d)
+            f"Audit: {n} files, gate_present={d['gate_present']}", d)
     except Exception as e:
         return TestResult("security_net", "Security", "ERROR", f"{e}")
 

@@ -214,6 +214,18 @@ class NetworkGate:
         """
         # Resolve mode string to enum
         mode_lower = mode.strip().lower()
+
+        # -- Legacy environment variable override (enterprise-in-depth) --
+        # If HYBRIDRAG_OFFLINE is set, force offline mode regardless of
+        # what the config says. This consolidates the kill switch that
+        # was previously duplicated in http_client.py into the single
+        # authoritative gate. One place, one check, one audit trail.
+        if os.environ.get("HYBRIDRAG_OFFLINE", "").strip() in ("1", "true", "yes"):
+            mode_lower = "offline"
+            logger.info(
+                "NETWORK GATE: HYBRIDRAG_OFFLINE env var set -- forcing offline mode"
+            )
+
         if mode_lower == "online":
             self._mode = NetworkMode.ONLINE
         elif mode_lower == "admin":

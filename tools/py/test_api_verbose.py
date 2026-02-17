@@ -86,7 +86,7 @@ except urllib.error.HTTPError as e:
     latency = time.time() - start
     error_body = ""
     try: error_body = e.read().decode("utf-8")
-    except: pass
+    except Exception: pass
     print(f"  Status:    {e.code} {e.reason}")
     print(f"  Latency:   {latency:.2f}s")
     if error_body: print(f"  Response:  {error_body[:500]}")

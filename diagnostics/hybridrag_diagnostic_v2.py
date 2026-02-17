@@ -589,7 +589,7 @@ def test_schema_fts5(root: Path) -> TestResult:
                 conn.execute("CREATE VIRTUAL TABLE IF NOT EXISTS _fts_test USING fts5(content)")
                 conn.execute("DROP TABLE _fts_test")
                 details["fts5_available"] = True
-            except:
+            except Exception:
                 details["fts5_available"] = False
                 return TestResult("schema_fts5", "Database", 2, "WARN",
                     "FTS5 extension not available -- keyword search disabled",
@@ -613,7 +613,7 @@ def test_schema_fts5(root: Path) -> TestResult:
                 return TestResult("schema_fts5", "Database", 2, "WARN",
                     f"FTS5 out of sync: {fts_count} FTS rows vs {chunk_count} chunks",
                     fix_hint="Re-index to rebuild FTS5 index", details=details)
-        except:
+        except Exception:
             pass
         
         conn.close()
@@ -654,7 +654,7 @@ def test_data_integrity(root: Path) -> TestResult:
             details["null_text_chunks"] = null_text
             if null_text > 0:
                 issues.append(f"{null_text} chunks with empty text")
-        except:
+        except Exception:
             pass
         
         # Unique source files
@@ -663,7 +663,7 @@ def test_data_integrity(root: Path) -> TestResult:
                 "SELECT COUNT(DISTINCT source_path) FROM chunks"
             ).fetchone()[0]
             details["unique_source_files"] = unique_files
-        except:
+        except Exception:
             pass
         
         # Check for orphaned source references (files that no longer exist)
@@ -676,7 +676,7 @@ def test_data_integrity(root: Path) -> TestResult:
             details["missing_sources"] = len(missing_sources)
             if missing_sources:
                 issues.append(f"{len(missing_sources)}/{len(source_paths)} sampled source files no longer exist")
-        except:
+        except Exception:
             pass
         
         conn.close()
@@ -955,7 +955,7 @@ def test_api_reachability(root: Path) -> TestResult:
         import keyring
         endpoint = keyring.get_password("hybridrag", "azure_endpoint")
         details["endpoint_source"] = "credential_manager"
-    except:
+    except Exception:
         endpoint = None
     
     if not endpoint:
@@ -965,7 +965,7 @@ def test_api_reachability(root: Path) -> TestResult:
             config = load_config(str(root))
             endpoint = getattr(config.api, "endpoint", "") or getattr(config.api, "base_url", "")
             details["endpoint_source"] = "config"
-        except:
+        except Exception:
             pass
     
     if not endpoint:
@@ -1046,7 +1046,7 @@ def test_security_network_lockdown(root: Path) -> TestResult:
             for pattern, desc in net_patterns:
                 if re.search(pattern, content):
                     findings.append(f"{py_file.name}: {desc}")
-        except:
+        except Exception:
             pass
     
     details["network_findings"] = findings
@@ -1058,7 +1058,7 @@ def test_security_network_lockdown(root: Path) -> TestResult:
         api_endpoint = getattr(config.api, "endpoint", "") or getattr(config.api, "base_url", "")
         if api_endpoint and "openai.com" in api_endpoint:
             issues.append("SEC-001: API defaults to public OpenAI -- data exfiltration risk")
-    except:
+    except Exception:
         pass
     
     if issues:
@@ -1239,7 +1239,7 @@ def test_llm_router_url_construction(root: Path) -> TestResult:
             for name, obj in inspect.getmembers(mod, inspect.isclass):
                 if "api" in name.lower() and name != "LLMRouter":
                     source += "\n" + inspect.getsource(obj)
-        except:
+        except Exception:
             pass
         
         details = {}
@@ -1305,7 +1305,7 @@ def test_powershell_profile(root: Path) -> TestResult:
             issues.append("api_mode_commands.ps1 not loaded by startup script")
         
         details["issues"] = issues
-    except:
+    except Exception:
         pass
     
     if issues:
@@ -1368,7 +1368,7 @@ def test_ssl_certificates(root: Path) -> TestResult:
         cert_size = Path(cert_path).stat().st_size
         details["certifi_path"] = cert_path
         details["certifi_size_kb"] = round(cert_size / 1024, 1)
-    except:
+    except Exception:
         details["certifi_available"] = False
     
     # Check environment variables that affect SSL
