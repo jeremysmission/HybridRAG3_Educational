@@ -238,7 +238,8 @@ class APIRouter:
     _DEFAULT_API_VERSION = "2024-02-02"
     _DEFAULT_DEPLOYMENT = "gpt-35-turbo"
 
-    def __init__(self, config: Config, api_key: str, endpoint: str = ""):
+    def __init__(self, config: Config, api_key: str, endpoint: str = "",
+                 deployment_override: str = "", api_version_override: str = ""):
         """
         Set up the API router using the official openai SDK.
 
@@ -246,6 +247,10 @@ class APIRouter:
             config:   The HybridRAG configuration object
             api_key:  Your API key (from Credential Manager or env var)
             endpoint: Your API base URL (Azure endpoint or OpenAI base)
+            deployment_override: Pre-resolved deployment name (from credentials.py).
+                If provided, skips the internal _resolve_deployment() chain.
+            api_version_override: Pre-resolved API version (from credentials.py).
+                If provided, skips the internal _resolve_api_version() chain.
 
         What happens here:
             1. We figure out if this is Azure or standard OpenAI
@@ -254,6 +259,7 @@ class APIRouter:
             4. The client handles all URL/header construction from here on
 
         RESOLUTION ORDER for deployment and api_version:
+            0. Override from resolve_credentials() (if provided by LLMRouter)
             1. config/default_config.yaml (api.deployment, api.api_version)
             2. Environment variables (AZURE_OPENAI_DEPLOYMENT, etc.)
             3. Extracted from endpoint URL (if it contains /deployments/xxx)
@@ -275,12 +281,19 @@ class APIRouter:
         )
 
         # -- Resolve deployment name --
-        # Priority: YAML config > env var > URL extraction > fallback
-        self.deployment = self._resolve_deployment(config, self.base_endpoint)
+        # If the canonical resolver already extracted deployment from URL
+        # or env vars, use that directly (no duplicate resolution).
+        if deployment_override:
+            self.deployment = deployment_override
+        else:
+            # Fallback: run the local resolution chain
+            self.deployment = self._resolve_deployment(config, self.base_endpoint)
 
         # -- Resolve API version --
-        # Priority: YAML config > env var > URL extraction > fallback
-        self.api_version = self._resolve_api_version(config, self.base_endpoint)
+        if api_version_override:
+            self.api_version = api_version_override
+        else:
+            self.api_version = self._resolve_api_version(config, self.base_endpoint)
 
         # -- Network gate check --
         # Verify the endpoint is allowed before we even create the SDK client.
@@ -762,48 +775,64 @@ class LLMRouter:
         # This is lightweight and doesn't need any credentials
         self.ollama = OllamaRouter(config)
 
-        # -- Resolve API key from the priority chain --
+        # -- Resolve ALL credentials through the single canonical resolver --
+        # This replaces 45 lines of duplicate env-var/keyring logic that
+        # previously lived here. Now there is ONE resolver, ONE alias list,
+        # ONE keyring schema. If the caller passed an explicit api_key
+        # (e.g. from a test), we use that; otherwise resolve_credentials()
+        # checks keyring -> env vars -> config in priority order.
         resolved_key = api_key
-
-        # Priority 2: Windows Credential Manager (most secure)
-        if not resolved_key:
-            try:
-                from ..security.credentials import get_api_key
-                resolved_key = get_api_key()
-            except ImportError:
-                pass
-
-        # Priority 3-5: Environment variables
-        if not resolved_key:
-            resolved_key = os.environ.get("AZURE_OPENAI_API_KEY", "")
-        if not resolved_key:
-            resolved_key = os.environ.get("AZURE_OPEN_AI_KEY", "")
-        if not resolved_key:
-            resolved_key = os.environ.get("OPENAI_API_KEY", "")
-
-        # -- Resolve API endpoint from the priority chain --
         resolved_endpoint = ""
+        resolved_deployment = ""
+        resolved_api_version = ""
 
-        # Priority 1: Credential Manager
         try:
-            from ..security.credentials import get_api_endpoint
-            resolved_endpoint = get_api_endpoint()
+            from ..security.credentials import resolve_credentials
+            # Pass config as dict so the resolver can read YAML fallbacks
+            config_dict = None
+            if hasattr(config, "to_dict"):
+                config_dict = config.to_dict()
+            elif hasattr(config, "api"):
+                config_dict = {
+                    "api": {
+                        "endpoint": config.api.endpoint or "",
+                        "deployment": config.api.deployment or "",
+                        "api_version": config.api.api_version or "",
+                    }
+                }
+            creds = resolve_credentials(config_dict)
+
+            if not resolved_key and creds.api_key:
+                resolved_key = creds.api_key
+            if creds.endpoint:
+                resolved_endpoint = creds.endpoint
+            if creds.deployment:
+                resolved_deployment = creds.deployment
+            if creds.api_version:
+                resolved_api_version = creds.api_version
+
+            self.logger.info(
+                "llm_router_creds_resolved",
+                key_source=creds.source_key or "caller",
+                endpoint_source=creds.source_endpoint or "config",
+            )
         except ImportError:
-            pass
+            # If credentials module can't load, fall through to no-API mode
+            self.logger.warning("llm_router_credentials_import_failed")
 
-        # Priority 2-3: Environment variables
-        if not resolved_endpoint:
-            resolved_endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT", "")
-        if not resolved_endpoint:
-            resolved_endpoint = os.environ.get("OPENAI_API_ENDPOINT", "")
-
-        # -- Override config endpoint if we found a custom one --
-        if resolved_endpoint:
-            self.config.api.endpoint = resolved_endpoint
+        # NOTE: We do NOT mutate config.api.endpoint here.
+        # The gate was already configured with the correct endpoint by
+        # boot_hybridrag() or configure_gate(). Mutating config after
+        # gate configuration creates invisible failures where the gate
+        # blocks requests to the new endpoint.
 
         # -- Create the API router (only if we have a key) --
         if resolved_key:
-            self.api = APIRouter(config, resolved_key, resolved_endpoint)
+            self.api = APIRouter(
+                config, resolved_key, resolved_endpoint,
+                deployment_override=resolved_deployment,
+                api_version_override=resolved_api_version,
+            )
             self.logger.info("llm_router_init", api_mode="enabled")
         else:
             self.api = None

@@ -708,7 +708,7 @@ def test_credentials(root: Path) -> TestResult:
     
     # Check for API key
     try:
-        key = keyring.get_password("hybridragv3", "api_key")
+        key = keyring.get_password("hybridrag", "azure_api_key")
         details["api_key_stored"] = key is not None and len(key) > 0
     except Exception as e:
         details["api_key_stored"] = False
@@ -716,7 +716,7 @@ def test_credentials(root: Path) -> TestResult:
     
     # Check for endpoint
     try:
-        endpoint = keyring.get_password("hybridragv3", "api_endpoint") 
+        endpoint = keyring.get_password("hybridrag", "azure_endpoint") 
         details["endpoint_stored"] = endpoint is not None and len(endpoint) > 0
         if endpoint:
             details["endpoint_is_azure"] = any(x in endpoint.lower() for x in ["azure", "aoai"])
@@ -953,7 +953,7 @@ def test_api_reachability(root: Path) -> TestResult:
     # Get endpoint from credentials
     try:
         import keyring
-        endpoint = keyring.get_password("hybridragv3", "api_endpoint")
+        endpoint = keyring.get_password("hybridrag", "azure_endpoint")
         details["endpoint_source"] = "credential_manager"
     except:
         endpoint = None

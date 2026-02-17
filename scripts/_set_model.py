@@ -99,31 +99,31 @@ def divider():
 
 
 def _resolve_creds():
-    api_key = endpoint = None
+    """Resolve API credentials using the canonical single source of truth.
+
+    WHY THIS CHANGED (Phase 2):
+      Previously this function had its own duplicate env var lists and
+      keyring logic that could drift out of sync with credentials.py.
+      Now it calls resolve_credentials() which is the ONE place that
+      knows all env var aliases, keyring schema, and resolution order.
+
+    Returns:
+        tuple: (api_key, endpoint) -- both may be None if not found.
+    """
     try:
-        from src.security.credentials import get_api_key, get_api_endpoint
-        api_key = get_api_key()
-        endpoint = get_api_endpoint()
-    except ImportError:
-        pass
-    if not api_key:
-        for v in ["HYBRIDRAG_API_KEY", "AZURE_OPENAI_API_KEY",
-                   "AZURE_OPEN_AI_KEY", "OPENAI_API_KEY"]:
-            val = os.environ.get(v, "").strip()
-            if val: api_key = val; break
-    if not endpoint:
-        for v in ["HYBRIDRAG_API_ENDPOINT", "AZURE_OPENAI_ENDPOINT",
-                   "OPENAI_API_ENDPOINT", "OPENAI_BASE_URL"]:
-            val = os.environ.get(v, "").strip()
-            if val: endpoint = val; break
-    if not endpoint:
+        from src.security.credentials import resolve_credentials
+        # Read config for the YAML fallback path
+        cfg_dict = None
         try:
             with open(_config_path(), "r") as f:
-                cfg = yaml.safe_load(f)
-            endpoint = cfg.get("api", {}).get("endpoint", "")
+                cfg_dict = yaml.safe_load(f)
         except Exception:
             pass
-    return api_key, endpoint
+        creds = resolve_credentials(cfg_dict)
+        return creds.api_key, creds.endpoint
+    except ImportError:
+        # credentials module not available -- return None, None
+        return None, None
 
 
 def _short_name(full_name):
