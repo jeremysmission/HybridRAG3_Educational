@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HybridRAG v3 — Network Topology Diagram</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #eef1f5;
+    font-family: 'IBM Plex Sans', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px;
+    min-height: 100vh;
+  }
+
+  .page-title {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: #1a2332;
+    margin-bottom: 4px;
+  }
+  .page-subtitle {
+    font-size: 12px;
+    color: #5a6a7a;
+    font-weight: 400;
+    letter-spacing: 0.5px;
+    margin-bottom: 24px;
+  }
+
+  .diagram-container {
+    background: #ffffff;
+    border: 2px solid #1a2332;
+    border-radius: 2px;
+    padding: 0;
+    max-width: 1100px;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .diagram-header {
+    background: #1a2332;
+    color: #ffffff;
+    padding: 14px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .diagram-header h1 {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+  .diagram-header .meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: #8899aa;
+  }
+
+  svg { display: block; width: 100%; height: auto; }
+
+  .legend {
+    display: flex;
+    gap: 20px;
+    padding: 12px 24px;
+    background: #f8f9fb;
+    border-top: 1px solid #d0d5dd;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: #3a4a5a;
+    font-weight: 500;
+  }
+  .legend-swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+    border: 1.5px solid rgba(0,0,0,0.15);
+  }
+
+  .footer-note {
+    padding: 10px 24px;
+    font-size: 10px;
+    color: #7a8a9a;
+    border-top: 1px solid #e8eaed;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-title">HybridRAG v3 — Network Topology Diagram</div>
+<div class="page-subtitle">Physical & Logical Layout · Security Zones · Data Flow Paths</div>
+
+<div class="diagram-container">
+  <div class="diagram-header">
+    <h1>NETWORK TOPOLOGY</h1>
+    <span class="meta">UNrestricted · FEB 2026 · REV A</span>
+  </div>
+
+  <svg viewBox="0 0 1060 780" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arr" viewBox="0 0 10 7" refX="9" refY="3.5"
+        markerWidth="9" markerHeight="7" orient="auto-start-auto">
+        <polygon points="0 0, 10 3.5, 0 7" fill="#1a2332"/>
+      </marker>
+      <marker id="arr-r" viewBox="0 0 10 7" refX="9" refY="3.5"
+        markerWidth="9" markerHeight="7" orient="auto-start-auto">
+        <polygon points="0 0, 10 3.5, 0 7" fill="#dc2626"/>
+      </marker>
+      <marker id="arr-g" viewBox="0 0 10 7" refX="9" refY="3.5"
+        markerWidth="9" markerHeight="7" orient="auto-start-auto">
+        <polygon points="0 0, 10 3.5, 0 7" fill="#16a34a"/>
+      </marker>
+      <marker id="arr-b" viewBox="0 0 10 7" refX="9" refY="3.5"
+        markerWidth="9" markerHeight="7" orient="auto-start-auto">
+        <polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/>
+      </marker>
+
+      <filter id="sh" x="-2%" y="-2%" width="104%" height="108%">
+        <feDropShadow dx="1" dy="2" stdDeviation="2.5" flood-opacity="0.1"/>
+      </filter>
+
+      <!-- Hatch pattern for restricted zones -->
+      <pattern id="hatch" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
+        <line x1="0" y1="0" x2="0" y2="8" stroke="#dc262620" stroke-width="2"/>
+      </pattern>
+    </defs>
+
+    <!-- ============================================================ -->
+    <!-- ZONE 1: SECURE CORPORATE NETWORK (outer boundary) -->
+    <!-- ============================================================ -->
+    <rect x="20" y="15" width="1020" height="745" rx="6"
+      fill="#f8fafb" stroke="#1a2332" stroke-width="3"/>
+    <!-- Zone label bar -->
+    <rect x="20" y="15" width="1020" height="36" rx="6" fill="#1a2332"/>
+    <rect x="20" y="36" width="1020" height="15" fill="#1a2332"/>
+    <text x="530" y="40" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="13" fill="#fff" font-weight="700" letter-spacing="2">SECURE CORPORATE NETWORK — ALL DATA STAYS INSIDE THIS BOUNDARY</text>
+
+    <!-- ============================================================ -->
+    <!-- ZONE 2: PROGRAM NETWORK (left half) -->
+    <!-- ============================================================ -->
+    <rect x="40" y="65" width="490" height="535" rx="4"
+      fill="#f0fdf4" stroke="#16a34a" stroke-width="2" stroke-dasharray="none"/>
+    <rect x="40" y="65" width="490" height="28" rx="4" fill="#16a34a"/>
+    <rect x="40" y="80" width="490" height="13" fill="#16a34a"/>
+    <text x="285" y="85" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="11" fill="#fff" font-weight="700" letter-spacing="1.5">ZONE A — PROGRAM NETWORK (offline CAPABLE)</text>
+
+    <!-- ============================================================ -->
+    <!-- FILE SERVER -->
+    <!-- ============================================================ -->
+    <rect x="80" y="115" width="190" height="130" rx="6"
+      fill="#1e3a5f" stroke="#0f2440" stroke-width="2" filter="url(#sh)"/>
+    <!-- Server icon -->
+    <rect x="148" y="128" width="54" height="12" rx="2" fill="#3b82f6"/>
+    <rect x="148" y="143" width="54" height="12" rx="2" fill="#3b82f6"/>
+    <rect x="148" y="158" width="54" height="12" rx="2" fill="#3b82f6"/>
+    <circle cx="193" cy="134" r="2.5" fill="#4ade80"/>
+    <circle cx="193" cy="149" r="2.5" fill="#4ade80"/>
+    <circle cx="193" cy="164" r="2.5" fill="#fbbf24"/>
+    <text x="175" y="190" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="13" fill="#fff" font-weight="700">FILE SERVER</text>
+    <text x="175" y="206" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="9" fill="#93c5fd">\\server\program\</text>
+    <text x="175" y="219" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="8" fill="#bfdbfe">PDFs · DOCX · TXT · HTML</text>
+    <text x="175" y="232" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="8" fill="#bfdbfe">50,000+ documents</text>
+
+    <!-- Network connection line from server down to switch -->
+    <line x1="175" y1="245" x2="175" y2="290" stroke="#1a2332" stroke-width="2.5"/>
+    <text x="182" y="272" font-family="IBM Plex Mono, monospace" font-size="8" fill="#5a6a7a">SMB/CIFS</text>
+
+    <!-- ============================================================ -->
+    <!-- NETWORK SWITCH -->
+    <!-- ============================================================ -->
+    <rect x="120" y="290" width="320" height="40" rx="4"
+      fill="#475569" stroke="#334155" stroke-width="1.5" filter="url(#sh)"/>
+    <!-- Port dots -->
+    <circle cx="155" cy="310" r="4" fill="#4ade80"/>
+    <circle cx="175" cy="310" r="4" fill="#4ade80"/>
+    <circle cx="195" cy="310" r="4" fill="#4ade80"/>
+    <circle cx="215" cy="310" r="4" fill="#4ade80"/>
+    <circle cx="235" cy="310" r="4" fill="#fbbf24"/>
+    <circle cx="255" cy="310" r="4" fill="#64748b"/>
+    <circle cx="275" cy="310" r="4" fill="#64748b"/>
+    <circle cx="295" cy="310" r="4" fill="#64748b"/>
+    <circle cx="315" cy="310" r="4" fill="#64748b"/>
+    <circle cx="335" cy="310" r="4" fill="#64748b"/>
+    <circle cx="355" cy="310" r="4" fill="#64748b"/>
+    <circle cx="375" cy="310" r="4" fill="#64748b"/>
+    <circle cx="395" cy="310" r="4" fill="#64748b"/>
+    <circle cx="415" cy="310" r="4" fill="#64748b"/>
+    <text x="280" y="303" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#e2e8f0" font-weight="600">PROGRAM NETWORK SWITCH</text>
+
+    <!-- ============================================================ -->
+    <!-- ENGINEER WORKSTATION -->
+    <!-- ============================================================ -->
+    <!-- Connection from switch to workstation -->
+    <line x1="280" y1="330" x2="280" y2="380" stroke="#1a2332" stroke-width="2.5"/>
+    <text x="287" y="360" font-family="IBM Plex Mono, monospace" font-size="8" fill="#5a6a7a">Ethernet</text>
+
+    <rect x="108" y="382" width="344" height="200" rx="6"
+      fill="#ffffff" stroke="#1a2332" stroke-width="2.5" filter="url(#sh)"/>
+
+    <!-- Monitor shape -->
+    <rect x="230" y="392" width="100" height="65" rx="3" fill="#0f172a" stroke="#334155" stroke-width="1.5"/>
+    <rect x="236" y="398" width="88" height="50" rx="1" fill="#1e293b"/>
+    <text x="280" y="420" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="7" fill="#4ade80">HybridRAG v3</text>
+    <text x="280" y="432" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="6" fill="#64748b">Ready for queries...</text>
+    <rect x="268" y="457" width="24" height="6" rx="1" fill="#475569"/>
+
+    <text x="280" y="482" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="14" fill="#1a2332" font-weight="700">ENGINEER WORKSTATION</text>
+    <text x="280" y="498" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="9" fill="#5a6a7a">Windows · Python 3.11 · 55 packages</text>
+
+    <!-- Software stack inside workstation -->
+    <rect x="125" y="508" width="150" height="60" rx="3"
+      fill="#f0fdf4" stroke="#86efac" stroke-width="1"/>
+    <text x="200" y="524" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#166534" font-weight="600">LOCAL PROCESSING</text>
+    <text x="200" y="538" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="8" fill="#16a34a">Ollama + Phi-4 Mini</text>
+    <text x="200" y="550" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="8" fill="#16a34a">all-MiniLM-L6-v2</text>
+    <text x="200" y="562" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="8" fill="#16a34a">SQLite · NumPy memmap</text>
+
+    <rect x="285" y="508" width="150" height="60" rx="3"
+      fill="#eff6ff" stroke="#93c5fd" stroke-width="1"/>
+    <text x="360" y="524" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#1e40af" font-weight="600">RETRIEVAL ENGINE</text>
+    <text x="360" y="538" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="8" fill="#2563eb">Vector search (cosine)</text>
+    <text x="360" y="550" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="8" fill="#2563eb">BM25 keyword (FTS5)</text>
+    <text x="360" y="562" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="8" fill="#2563eb">RRF fusion (k=60)</text>
+
+    <!-- ============================================================ -->
+    <!-- ZONE 3: FIREWALLED API ZONE (right half) -->
+    <!-- ============================================================ -->
+    <rect x="550" y="65" width="480" height="535" rx="4"
+      fill="#fef2f2" stroke="#dc2626" stroke-width="2"/>
+    <rect x="550" y="65" width="480" height="28" rx="4" fill="#dc2626"/>
+    <rect x="550" y="80" width="480" height="13" fill="#dc2626"/>
+    <text x="790" y="85" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="11" fill="#fff" font-weight="700" letter-spacing="1.5">ZONE B — COMPANY API INFRASTRUCTURE (FIREWALLED)</text>
+
+    <!-- ============================================================ -->
+    <!-- FIREWALL -->
+    <!-- ============================================================ -->
+    <!-- Firewall wall graphic -->
+    <rect x="560" y="260" width="60" height="200" rx="0"
+      fill="#991b1b" stroke="#7f1d1d" stroke-width="2"/>
+    <!-- Brick pattern -->
+    <line x1="560" y1="280" x2="620" y2="280" stroke="#7f1d1d" stroke-width="0.8"/>
+    <line x1="560" y1="300" x2="620" y2="300" stroke="#7f1d1d" stroke-width="0.8"/>
+    <line x1="560" y1="320" x2="620" y2="320" stroke="#7f1d1d" stroke-width="0.8"/>
+    <line x1="560" y1="340" x2="620" y2="340" stroke="#7f1d1d" stroke-width="0.8"/>
+    <line x1="560" y1="360" x2="620" y2="360" stroke="#7f1d1d" stroke-width="0.8"/>
+    <line x1="560" y1="380" x2="620" y2="380" stroke="#7f1d1d" stroke-width="0.8"/>
+    <line x1="560" y1="400" x2="620" y2="400" stroke="#7f1d1d" stroke-width="0.8"/>
+    <line x1="560" y1="420" x2="620" y2="420" stroke="#7f1d1d" stroke-width="0.8"/>
+    <line x1="560" y1="440" x2="620" y2="440" stroke="#7f1d1d" stroke-width="0.8"/>
+    <line x1="590" y1="260" x2="590" y2="280" stroke="#7f1d1d" stroke-width="0.8"/>
+    <line x1="575" y1="280" x2="575" y2="300" stroke="#7f1d1d" stroke-width="0.8"/>
+    <line x1="605" y1="280" x2="605" y2="300" stroke="#7f1d1d" stroke-width="0.8"/>
+    <line x1="590" y1="300" x2="590" y2="320" stroke="#7f1d1d" stroke-width="0.8"/>
+    <line x1="575" y1="320" x2="575" y2="340" stroke="#7f1d1d" stroke-width="0.8"/>
+    <line x1="605" y1="320" x2="605" y2="340" stroke="#7f1d1d" stroke-width="0.8"/>
+    <line x1="590" y1="340" x2="590" y2="360" stroke="#7f1d1d" stroke-width="0.8"/>
+    <line x1="575" y1="360" x2="575" y2="380" stroke="#7f1d1d" stroke-width="0.8"/>
+    <line x1="605" y1="360" x2="605" y2="380" stroke="#7f1d1d" stroke-width="0.8"/>
+    <line x1="590" y1="380" x2="590" y2="400" stroke="#7f1d1d" stroke-width="0.8"/>
+    <line x1="575" y1="400" x2="575" y2="420" stroke="#7f1d1d" stroke-width="0.8"/>
+    <line x1="605" y1="400" x2="605" y2="420" stroke="#7f1d1d" stroke-width="0.8"/>
+    <line x1="590" y1="420" x2="590" y2="440" stroke="#7f1d1d" stroke-width="0.8"/>
+    <line x1="575" y1="440" x2="575" y2="460" stroke="#7f1d1d" stroke-width="0.8"/>
+    <line x1="605" y1="440" x2="605" y2="460" stroke="#7f1d1d" stroke-width="0.8"/>
+
+    <!-- Firewall label -->
+    <text x="590" y="252" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="11" fill="#991b1b" font-weight="700">CORPORATE</text>
+    <text x="590" y="244" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="11" fill="#991b1b" font-weight="700">FIREWALL</text>
+    <text x="590" y="476" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="8" fill="#dc2626">IT-managed</text>
+    <text x="590" y="488" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="8" fill="#dc2626">access control</text>
+
+    <!-- ============================================================ -->
+    <!-- API ENDPOINT -->
+    <!-- ============================================================ -->
+    <rect x="660" y="280" width="340" height="160" rx="6"
+      fill="#ffffff" stroke="#dc2626" stroke-width="2" filter="url(#sh)"/>
+
+    <!-- Cloud/server icon -->
+    <ellipse cx="830" cy="310" rx="40" ry="18" fill="#fee2e2" stroke="#fca5a5" stroke-width="1.5"/>
+    <ellipse cx="815" cy="305" rx="20" ry="14" fill="#fee2e2" stroke="#fca5a5" stroke-width="1"/>
+    <ellipse cx="845" cy="306" rx="16" ry="12" fill="#fee2e2" stroke="#fca5a5" stroke-width="1"/>
+
+    <text x="830" y="348" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="15" fill="#1a2332" font-weight="700">GPT-3.5 TURBO API</text>
+    <text x="830" y="366" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="10" fill="#dc2626">Company-provisioned endpoint</text>
+    <text x="830" y="382" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="9" fill="#64748b">Behind corporate firewall</text>
+    <text x="830" y="396" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="9" fill="#64748b">16,385 token context window</text>
+
+    <text x="830" y="420" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="10" fill="#dc2626" font-weight="600">ONLY FUNCTION: Generate answer</text>
+    <text x="830" y="433" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#ef4444">Does NOT index · Does NOT search · Does NOT access files</text>
+
+    <!-- ============================================================ -->
+    <!-- DATA FLOW ARROWS (the key part) -->
+    <!-- ============================================================ -->
+
+    <!-- 1. Workstation reads from file server (via switch) — during indexing -->
+    <!-- Already shown via switch connections above -->
+
+    <!-- 2. Workstation sends prompt TO GPT through firewall -->
+    <path d="M 452 490 L 500 490 Q 520 490 520 380 L 555 380"
+      fill="none" stroke="#dc2626" stroke-width="2.5" marker-end="url(#arr-r)"/>
+    <!-- Small break through firewall -->
+    <line x1="620" y1="370" x2="660" y2="370"
+      stroke="#dc2626" stroke-width="2.5" marker-end="url(#arr-r)"/>
+    <!-- Arrow label -->
+    <rect x="472" y="340" width="72" height="36" rx="3" fill="#fff" stroke="#dc2626" stroke-width="1"/>
+    <text x="508" y="355" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="7" fill="#dc2626" font-weight="600">PROMPT</text>
+    <text x="508" y="366" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="6" fill="#ef4444">curated chunks</text>
+    <text x="508" y="374" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="6" fill="#ef4444">+ question</text>
+
+    <!-- 3. GPT returns response through firewall back to workstation -->
+    <line x1="660" y1="390" x2="620" y2="390"
+      stroke="#16a34a" stroke-width="2.5" marker-end="url(#arr-g)"/>
+    <path d="M 560 390 L 540 390 Q 520 390 520 440 Q 520 500 452 500"
+      fill="none" stroke="#16a34a" stroke-width="2.5" marker-end="url(#arr-g)"/>
+    <!-- Arrow label -->
+    <rect x="472" y="405" width="72" height="36" rx="3" fill="#fff" stroke="#16a34a" stroke-width="1"/>
+    <text x="508" y="420" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="7" fill="#16a34a" font-weight="600">RESPONSE</text>
+    <text x="508" y="431" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="6" fill="#22c55e">grounded answer</text>
+    <text x="508" y="439" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="6" fill="#22c55e">+ citations</text>
+
+    <!-- ============================================================ -->
+    <!-- EXTERNAL INTERNET (blocked) -->
+    <!-- ============================================================ -->
+    <rect x="660" y="480" width="340" height="100" rx="6"
+      fill="url(#hatch)" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="8,4"/>
+    <text x="830" y="516" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="12" fill="#94a3b8" font-weight="600">EXTERNAL INTERNET</text>
+    <text x="830" y="534" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="10" fill="#94a3b8">NOT REQUIRED</text>
+    <text x="830" y="550" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="9" fill="#94a3b8">Indexing: 100% offline (Phi-4 Mini)</text>
+    <text x="830" y="564" text-anchor="middle"
+      font-family="IBM Plex Mono, monospace" font-size="9" fill="#94a3b8">Query: firewalled API only</text>
+
+    <!-- X through external internet -->
+    <line x1="780" y1="500" x2="880" y2="570" stroke="#ef4444" stroke-width="3" opacity="0.4"/>
+    <line x1="880" y1="500" x2="780" y2="570" stroke="#ef4444" stroke-width="3" opacity="0.4"/>
+
+    <!-- ============================================================ -->
+    <!-- BOTTOM: DATA FLOW SUMMARY -->
+    <!-- ============================================================ -->
+    <rect x="40" y="618" width="990" height="130" rx="4"
+      fill="#1a2332" stroke="#0f172a" stroke-width="1.5"/>
+
+    <text x="530" y="645" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="13" fill="#fff" font-weight="700" letter-spacing="1">DATA FLOW SUMMARY</text>
+
+    <!-- Phase 1 flow -->
+    <text x="70" y="672" font-family="IBM Plex Sans, sans-serif" font-size="11" fill="#86efac" font-weight="700">PHASE 1 — INDEXING ($0)</text>
+
+    <!-- Flow boxes -->
+    <rect x="70" y="680" width="120" height="28" rx="3" fill="#1e3a5f"/>
+    <text x="130" y="699" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#93c5fd">Network Drive</text>
+
+    <text x="200" y="698" font-family="IBM Plex Sans, sans-serif" font-size="14" fill="#4ade80">→</text>
+
+    <rect x="215" y="680" width="100" height="28" rx="3" fill="#475569"/>
+    <text x="265" y="699" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#e2e8f0">Parse + Chunk</text>
+
+    <text x="325" y="698" font-family="IBM Plex Sans, sans-serif" font-size="14" fill="#4ade80">→</text>
+
+    <rect x="340" y="680" width="140" height="28" rx="3" fill="#16a34a"/>
+    <text x="410" y="699" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#fff">Phi-4 Mini (local, $0)</text>
+
+    <text x="490" y="698" font-family="IBM Plex Sans, sans-serif" font-size="14" fill="#4ade80">→</text>
+
+    <rect x="505" y="680" width="160" height="28" rx="3" fill="#475569"/>
+    <text x="585" y="699" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#e2e8f0">SQLite + Memmap</text>
+
+    <text x="680" y="698" font-family="IBM Plex Mono, monospace" font-size="10" fill="#4ade80" font-weight="600">✓ DONE — No API used</text>
+
+    <!-- Phase 2 flow -->
+    <text x="70" y="722" font-family="IBM Plex Sans, sans-serif" font-size="11" fill="#93c5fd" font-weight="700">PHASE 2 — QUERY (~$0.002)</text>
+
+    <rect x="70" y="730" width="90" height="28" rx="3" fill="#475569"/>
+    <text x="115" y="749" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#e2e8f0">Question</text>
+
+    <text x="170" y="748" font-family="IBM Plex Sans, sans-serif" font-size="14" fill="#60a5fa">→</text>
+
+    <rect x="185" y="730" width="170" height="28" rx="3" fill="#2563eb"/>
+    <text x="270" y="749" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#fff">Hybrid Search (local, $0)</text>
+
+    <text x="365" y="748" font-family="IBM Plex Sans, sans-serif" font-size="14" fill="#60a5fa">→</text>
+
+    <rect x="380" y="730" width="100" height="28" rx="3" fill="#475569"/>
+    <text x="430" y="749" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#e2e8f0">Build Prompt</text>
+
+    <text x="490" y="748" font-family="IBM Plex Sans, sans-serif" font-size="14" fill="#60a5fa">→</text>
+
+    <!-- Firewall indicator -->
+    <rect x="500" y="733" width="12" height="22" rx="0" fill="#991b1b"/>
+    <text x="506" y="748" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="7" fill="#fca5a5">FW</text>
+
+    <text x="522" y="748" font-family="IBM Plex Sans, sans-serif" font-size="14" fill="#60a5fa">→</text>
+
+    <rect x="537" y="730" width="120" height="28" rx="3" fill="#dc2626"/>
+    <text x="597" y="749" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#fff">GPT-3.5T API</text>
+
+    <text x="667" y="748" font-family="IBM Plex Sans, sans-serif" font-size="14" fill="#60a5fa">→</text>
+
+    <!-- Firewall indicator -->
+    <rect x="677" y="733" width="12" height="22" rx="0" fill="#991b1b"/>
+    <text x="683" y="748" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="7" fill="#fca5a5">FW</text>
+
+    <text x="699" y="748" font-family="IBM Plex Sans, sans-serif" font-size="14" fill="#60a5fa">→</text>
+
+    <rect x="714" y="730" width="145" height="28" rx="3" fill="#16a34a"/>
+    <text x="787" y="749" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#fff">Answer + Citations</text>
+
+    <text x="874" y="748" font-family="IBM Plex Sans, sans-serif" font-size="14" fill="#60a5fa">→</text>
+
+    <rect x="889" y="730" width="120" height="28" rx="3" fill="#1e3a5f"/>
+    <text x="949" y="749" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#93c5fd">Network Drive ↩</text>
+
+    <!-- ============================================================ -->
+    <!-- CRITICAL CALLOUT -->
+    <!-- ============================================================ -->
+    <rect x="660" y="115" width="340" height="130" rx="6"
+      fill="#fff" stroke="#1a2332" stroke-width="1.5" filter="url(#sh)"/>
+    <text x="830" y="140" text-anchor="middle"
+      font-family="IBM Plex Sans, sans-serif" font-size="12" fill="#1a2332" font-weight="700">KEY SECURITY PROPERTIES</text>
+    <line x1="690" y1="148" x2="970" y2="148" stroke="#e2e8f0" stroke-width="1"/>
+    <text x="680" y="168" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="#166534" font-weight="600">✓</text>
+    <text x="698" y="168" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="#1a2332">Network drive data never leaves Zone A</text>
+    <text x="680" y="186" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="#166534" font-weight="600">✓</text>
+    <text x="698" y="186" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="#1a2332">GPT receives only curated text snippets</text>
+    <text x="680" y="204" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="#166534" font-weight="600">✓</text>
+    <text x="698" y="204" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="#1a2332">No file handles, paths, or credentials sent</text>
+    <text x="680" y="222" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="#166534" font-weight="600">✓</text>
+    <text x="698" y="222" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="#1a2332">All queries logged with run_id + timestamp</text>
+    <text x="680" y="240" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="#166534" font-weight="600">✓</text>
+    <text x="698" y="240" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="#1a2332">Indexing works in complete offline</text>
+
+  </svg>
+
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#f0fdf4; border-color:#16a34a;"></div>
+      Zone A — Program Network (offline capable)
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#fef2f2; border-color:#dc2626;"></div>
+      Zone B — Firewalled API Infrastructure
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#1e3a5f;"></div>
+      Data Source / Destination
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#991b1b;"></div>
+      Firewall (IT-managed)
+    </div>
+    <div class="legend-item">
+      <svg width="24" height="8"><line x1="0" y1="4" x2="24" y2="4" stroke="#dc2626" stroke-width="2.5"/></svg>
+      Prompt (outbound)
+    </div>
+    <div class="legend-item">
+      <svg width="24" height="8"><line x1="0" y1="4" x2="24" y2="4" stroke="#16a34a" stroke-width="2.5"/></svg>
+      Response (inbound)
+    </div>
+    <div class="legend-item">
+      <svg width="24" height="8"><line x1="0" y1="4" x2="24" y2="4" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6,4"/></svg>
+      Not used / blocked
+    </div>
+  </div>
+
+  <div class="footer-note">
+    TOPOLOGY: Logical network view · Physical connections may vary by site · Firewall rules managed by corporate IT · All traffic encrypted (HTTPS/TLS to API endpoint)
+  </div>
+</div>
+
+</body>
+</html>

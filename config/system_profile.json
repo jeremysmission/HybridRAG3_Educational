@@ -1,0 +1,139 @@
+{
+  "generated_at": "2026-02-14T22:13:27.529886+00:00",
+  "hardware": {
+    "timestamp": "2026-02-14T22:13:03.257971+00:00",
+    "hostname": "Myself",
+    "os": {
+      "system": "Windows",
+      "release": "10",
+      "version": "10.0.26200"
+    },
+    "python": {
+      "version": "3.11.9",
+      "architecture": "64bit"
+    },
+    "cpu": {
+      "name": "12th Gen Intel(R) Core(TM) i7-12700H",
+      "physical_cores": 14,
+      "logical_cores": 20,
+      "max_clock_mhz": 2300
+    },
+    "ram_gb": 15.7,
+    "disk": [
+      {
+        "model": "SK hynix PC801 HFS512GEJ9X101N",
+        "size_gb": 477,
+        "type": "NVMe SSD"
+      },
+      {
+        "model": "Seagate BUP Portable SCSI Disk Device",
+        "size_gb": 4658,
+        "type": "External"
+      }
+    ],
+    "gpu": "Intel(R) Iris(R) Xe Graphics"
+  },
+  "profile": {
+    "recommended_profile": "laptop_safe",
+    "reason": "15.7GB RAM + 14 cores",
+    "settings": {
+      "description": "Conservative \u2014 stability on 8-16GB laptops",
+      "embedding_batch_size": 16,
+      "chunk_size": 1200,
+      "chunk_overlap": 200,
+      "retrieval_top_k": 5,
+      "reranker_top_n": 20,
+      "indexing_block_chars": 200000,
+      "max_concurrent_files": 1,
+      "gc_between_files": true
+    }
+  },
+  "security": [
+    {
+      "test": "ENV: HF_HUB_OFFLINE",
+      "passed": true,
+      "detail": "1"
+    },
+    {
+      "test": "ENV: TRANSFORMERS_OFFLINE",
+      "passed": true,
+      "detail": "1"
+    },
+    {
+      "test": "ENV: HF_HUB_DISABLE_TELEMETRY",
+      "passed": true,
+      "detail": "1"
+    },
+    {
+      "test": "ENV: HF_HUB_DISABLE_IMPLICIT_TOKEN",
+      "passed": true,
+      "detail": "1"
+    },
+    {
+      "test": "ENV: KILL_SWITCH",
+      "passed": true,
+      "detail": "true"
+    },
+    {
+      "test": "CACHE: ST_HOME",
+      "passed": true,
+      "detail": "Cached"
+    },
+    {
+      "test": "CACHE: HF_HOME",
+      "passed": true,
+      "detail": "Cached"
+    },
+    {
+      "test": "SEC-001",
+      "passed": true,
+      "detail": "Custom: https://openrouter.ai/api/v1"
+    },
+    {
+      "test": "enterprise-IN-DEPTH: embedder.py",
+      "passed": true,
+      "detail": "Present"
+    },
+    {
+      "test": "NETWORK_GATE",
+      "passed": true,
+      "detail": "ONLINE: openrouter.ai"
+    }
+  ],
+  "tier1": [
+    {
+      "test": "T1-01: Imports",
+      "passed": true
+    },
+    {
+      "test": "T1-02: file_hash",
+      "passed": true
+    },
+    {
+      "test": "T1-03: Hash",
+      "passed": true
+    },
+    {
+      "test": "T1-04: Garbage",
+      "passed": true
+    },
+    {
+      "test": "T1-05: close()",
+      "passed": true
+    },
+    {
+      "test": "T1-06: Config",
+      "passed": true
+    },
+    {
+      "test": "T1-07: FTS5",
+      "passed": true
+    },
+    {
+      "test": "T1-08: Migration",
+      "passed": true
+    }
+  ],
+  "tier2": [],
+  "tier3": []
+}

@@ -1,0 +1,201 @@
+================================================================================
+QUOTING AND ENCODING SURVIVAL GUIDE FOR HYBRIDRAG
+================================================================================
+WHY YOU KEEP HITTING SYNTAX ERRORS (AND HOW TO NEVER HIT THEM AGAIN)
+================================================================================
+
+THE PROBLEM:
+When you copy code from AI assistant, ChatGPT, Word, Outlook, or any web browser,
+invisible character substitutions happen. These look identical on screen but
+break PowerShell and Python silently.
+
+THE VILLAINS (characters that look right but are WRONG):
+
+  WRONG (smart/curly)    RIGHT (straight)     How to spot
+  --------------------   -----------------    -----------------
+  left double quote      " (straight double)  Tilts left, curvy
+  right double quote     " (straight double)  Tilts right, curvy
+  left single quote      ' (straight single)  Like a tiny 6
+  right single quote     ' (straight single)  Like a tiny 9
+  em dash                -- (two hyphens)      Extra long dash
+  en dash                - (hyphen)            Medium dash
+  ellipsis char          ... (three dots)      One char not three
+
+WHERE THEY COME FROM:
+  1. AI assistant/ChatGPT output sometimes uses smart quotes in explanations
+  2. Web browsers auto-convert quotes when you copy from rendered HTML
+  3. Word/Outlook always converts to smart quotes by default
+  4. Some PDF viewers substitute characters on copy
+  5. Windows clipboard can mangle encoding on paste
+
+================================================================================
+RULE 1: ALWAYS PASTE INTO NOTEPAD FIRST
+================================================================================
+
+  The number one habit that prevents 90 percent of these errors:
+
+  1. Copy code from AI assistant
+  2. Open plain Notepad (Win+R, type notepad, Enter)
+  3. Paste into Notepad (this strips ALL formatting)
+  4. Select All (Ctrl+A) in Notepad
+  5. Copy again (Ctrl+C)
+  6. NOW paste into your .py or .ps1 file
+
+  Why Notepad specifically?
+  - Notepad is the ONLY Windows editor guaranteed to strip formatting
+  - VS Code sometimes preserves Unicode from clipboard
+  - Notepad++ preserves encoding from source
+
+  EVEN BETTER: Use the PowerShell scripts in this kit. They write files
+  directly to disk, bypassing the clipboard entirely.
+
+================================================================================
+RULE 2: FILE ENCODING RULES
+================================================================================
+
+  PYTHON files (.py):
+    Save as: UTF-8 WITHOUT BOM
+    Why: Python reads the BOM as a character and can choke on it
+    VS Code: bottom-right shows encoding, click it, choose UTF-8
+    Notepad: Save As, Encoding dropdown, choose UTF-8
+
+  POWERSHELL files (.ps1):
+    Save as: UTF-8 WITH BOM (safest for PS 5.1)
+    Why: PowerShell 5.1 assumes ANSI if no BOM, breaks on special chars
+    VS Code: bottom-right, click encoding, Save with Encoding, UTF-8 with BOM
+
+  YAML/JSON/TXT config files:
+    Save as: UTF-8 WITHOUT BOM
+    Why: Many parsers treat BOM as invalid first character
+
+  THE EASY WAY: All Python files in this kit are written using
+  [System.IO.File]::WriteAllText() with explicit UTF-8 no-BOM encoding.
+  This bypasses all PowerShell encoding weirdness.
+
+================================================================================
+RULE 3: POWERSHELL HERE-STRINGS AVOID MOST QUOTE PROBLEMS
+================================================================================
+
+  WRONG (breaks on special characters inside):
+    $text = "He said ""hello"" and it broke"
+
+  RIGHT (here-string, treats everything inside as literal):
+    $text = @'
+    He said "hello" and nothing broke
+    Any "quotes" or 'apostrophes' work fine in here
+    Even $dollar signs are literal in single-quote here-strings
+    '@
+
+  CRITICAL RULES FOR HERE-STRINGS:
+    - The opening @' must be the LAST thing on its line (nothing after it)
+    - The closing '@ must be the FIRST thing on its line (nothing before it)
+    - Not even a space before '@ -- it must be column 1
+    - Double-quote here-strings (@" "@) expand $variables
+    - Single-quote here-strings (@' '@) treat everything as literal text
+
+  ALL SCRIPTS IN THIS KIT USE HERE-STRINGS for any multi-line content.
+
+================================================================================
+RULE 4: THE NUCLEAR OPTION -- QUOTE SANITIZER SCRIPT
+================================================================================
+
+  If you suspect bad quotes in a file, run this from PowerShell:
+
+    .\tools\fix_quotes.ps1 -Path "yourfile.py"
+
+  Or to fix your entire project:
+
+    .\tools\fix_quotes.ps1 -Path "{PROJECT_ROOT}"
+
+  This replaces ALL smart quotes with straight quotes in one shot
+  and creates .bak backups of every file it touches.
+
+================================================================================
+RULE 5: HOW THIS KIT AVOIDS THE PROBLEM ENTIRELY
+================================================================================
+
+  Every file-writing PowerShell script in this kit uses this pattern:
+
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($filePath, $content, $utf8NoBom)
+
+  This approach:
+    - Writes UTF-8 without BOM (perfect for Python)
+    - Bypasses PowerShell Out-File and Set-Content encoding bugs
+    - Bypasses clipboard entirely (no copy-paste needed)
+    - Works identically on PowerShell 5.1 and 7.x
+    - Works on both home and work laptops
+
+  All you do is: right-click the .ps1 script, Run with PowerShell.
+
+================================================================================
+RULE 6: DETECTING BAD CHARACTERS BEFORE THEY BITE
+================================================================================
+
+  Run the detector from your project directory:
+
+    .\tools\detect_bad_chars.ps1
+
+  Or use the rag command after loading new_commands:
+
+    rag-detect-bad-chars
+
+  If it finds anything, the output tells you:
+    - Which file has the problem
+    - Which line and column the bad character is on
+    - What the character is (Unicode code + description)
+    - The exact command to fix it
+
+  Common codes and what they mean:
+    Code 8220 = left double smart quote (BAD -- replace with ")
+    Code 8221 = right double smart quote (BAD -- replace with ")
+    Code 8216 = left single smart quote (BAD -- replace with ')
+    Code 8217 = right single smart quote (BAD -- replace with ')
+    Code 8212 = em dash (BAD -- replace with --)
+    Code 8211 = en dash (PROBABLY BAD -- replace with -)
+    Code 65279 = UTF-8 BOM (BAD in Python files -- remove it)
+
+================================================================================
+RULE 7: VS CODE SETTINGS TO PREVENT FUTURE PROBLEMS
+================================================================================
+
+  Add these to your VS Code settings.json (Ctrl+Shift+P, search
+  "Preferences: Open Settings JSON"):
+
+    "files.encoding": "utf8",
+    "files.autoGuessEncoding": false,
+    "editor.renderWhitespace": "all",
+    "[powershell]": {
+        "files.encoding": "utf8bom"
+    }
+
+  This makes VS Code:
+    - Default all files to UTF-8 without BOM
+    - Auto-save PowerShell files with BOM (PS 5.1 needs it)
+    - Show invisible whitespace characters
+    - Stop guessing encoding (guessing causes problems)
+
+================================================================================
+CHEAT SHEET: TAPE THIS TO YOUR MONITOR
+================================================================================
+
+  BEFORE pasting any code:
+    1. Paste into Notepad first, then re-copy
+    2. OR use the write_*.ps1 scripts (bypasses clipboard)
+
+  IF something breaks after pasting:
+    1. Run: rag-detect-bad-chars
+    2. Run: rag-fix-quotes
+    3. Check encoding in VS Code (bottom-right corner)
+    4. Re-save as UTF-8 (no BOM for .py, with BOM for .ps1)
+
+  QUICK TEST for BOM in a Python file:
+    python -c "print(open('yourfile.py','rb').read(3))"
+    If it shows b'\xef\xbb\xbf' that is a BOM -- remove it
+
+  REMEMBER: The scripts in this kit write files directly to disk.
+  If you use them, you will NEVER have a quoting or encoding problem.
+
+================================================================================
+END OF GUIDE
+================================================================================
