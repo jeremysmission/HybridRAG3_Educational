@@ -1,6 +1,3 @@
 @echo off
 title HybridRAG v3 GUI
-cd /d "%~dp0"
-call .venv\Scripts\activate.bat
-python src\gui\launch_gui.py
-pause
+powershell -NoExit -Command "Invoke-Expression ([System.IO.File]::ReadAllText('%~dp0start_hybridrag.ps1')); python src\gui\launch_gui.py"
