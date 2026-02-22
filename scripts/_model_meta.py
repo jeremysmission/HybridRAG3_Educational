@@ -163,15 +163,24 @@ RECOMMENDED_OFFLINE = {
 # ============================================================================
 
 WORK_ONLY_MODELS = {
+    # tier_eng / tier_gen: Benchmark-calibrated scores (0-100 scale).
+    # Sources: HumanEval, MATH, GSM8K, MMLU, ARC, HellaSwag, TruthfulQA.
+    # Scale anchor: GPT-4o-mini API = 72/75, GPT-3.5-turbo API = 50/58.
+    # All scores include ~3pt Q4 quantization penalty vs FP16.
     "phi4-mini":        {"size_gb": 2.3, "vram_gb": 5.5,
+                         "tier_eng": 52, "tier_gen": 48,
                          "note": "Primary for 7/9 profiles (MIT, Microsoft/USA)"},
     "mistral:7b":       {"size_gb": 4.1, "vram_gb": 5.5,
+                         "tier_eng": 40, "tier_gen": 48,
                          "note": "Alt for eng/sys/fe/cyber (Apache 2.0, Mistral/France)"},
     "phi4:14b-q4_K_M":  {"size_gb": 9.1, "vram_gb": 11.0,
+                         "tier_eng": 72, "tier_gen": 65,
                          "note": "Logistics primary, CAD alt (MIT, Microsoft/USA)"},
     "gemma3:4b":        {"size_gb": 3.3, "vram_gb": 4.0,
+                         "tier_eng": 50, "tier_gen": 46,
                          "note": "PM fast summarization (Apache 2.0, Google/USA)"},
     "mistral-nemo:12b": {"size_gb": 7.1, "vram_gb": 10.0,
+                         "tier_eng": 48, "tier_gen": 55,
                          "note": "Upgrade for sw/eng/sys/cyber/gen (Apache 2.0, Mistral+NVIDIA, 128K ctx)"},
 }
 
@@ -849,4 +858,117 @@ def get_routing_table(available_deployments):
     table = {}
     for uc_key in USE_CASES:
         table[uc_key] = select_best_model(uc_key, available_deployments)
+    return table
+
+
+# ============================================================================
+# HARDWARE-FILTERED MODEL RANKING
+# ============================================================================
+# Given a hardware profile (laptop_safe / desktop_power / server_max) and a
+# use case, returns an ordered list of models ranked for that combination.
+#
+# VRAM budgets:
+#   laptop_safe:    0 GB (CPU-only, all models run via RAM)
+#   desktop_power: 12 GB (RTX 3060/4070 class)
+#   server_max:    24 GB (RTX 3090/4090 class)
+#
+# For laptop_safe, ALL models in WORK_ONLY_MODELS can run on CPU (via RAM),
+# so no VRAM filtering is applied -- just use primary/alt from
+# RECOMMENDED_OFFLINE.
+#
+# For desktop_power/server_max, models are filtered by vram_gb <= budget,
+# then ordered: upgrade (if fits) > primary > alt.
+# ============================================================================
+
+_PROFILE_VRAM = {
+    "laptop_safe": 0,
+    "desktop_power": 12,
+    "server_max": 24,
+}
+
+
+def get_ranked_models_for_profile(profile_name, uc_key):
+    """
+    Get ranked offline models for a profile + use case combination.
+
+    Args:
+        profile_name: "laptop_safe", "desktop_power", or "server_max"
+        uc_key: Use case key from USE_CASES (e.g. "sw", "eng", "pm")
+
+    Returns:
+        list of dicts, ordered best-first:
+          [{"model": "mistral-nemo:12b", "rank": 1, "role": "upgrade",
+            "vram_gb": 10.0, "score": 72}, ...]
+        Empty list if uc_key not in RECOMMENDED_OFFLINE.
+    """
+    if uc_key not in RECOMMENDED_OFFLINE:
+        return []
+
+    rec = RECOMMENDED_OFFLINE[uc_key]
+    max_vram = _PROFILE_VRAM.get(profile_name, 0)
+    is_cpu_only = (max_vram == 0)
+
+    # Collect candidate models with their roles
+    candidates = []
+
+    # Primary
+    primary = rec.get("primary")
+    if primary and primary in WORK_ONLY_MODELS:
+        candidates.append({"model": primary, "role": "primary",
+                           "vram_gb": WORK_ONLY_MODELS[primary]["vram_gb"]})
+
+    # Alt
+    alt = rec.get("alt")
+    if alt and alt in WORK_ONLY_MODELS:
+        candidates.append({"model": alt, "role": "alt",
+                           "vram_gb": WORK_ONLY_MODELS[alt]["vram_gb"]})
+
+    # Upgrade (only if the profile has GPU)
+    upgrade = rec.get("upgrade")
+    if upgrade and upgrade in WORK_ONLY_MODELS and not is_cpu_only:
+        candidates.append({"model": upgrade, "role": "upgrade",
+                           "vram_gb": WORK_ONLY_MODELS[upgrade]["vram_gb"]})
+
+    # Filter by VRAM (skip for CPU-only -- all run via RAM)
+    if not is_cpu_only:
+        candidates = [c for c in candidates if c["vram_gb"] <= max_vram]
+
+    # Compute use-case score using curated benchmark scores from WORK_ONLY_MODELS
+    for c in candidates:
+        meta = WORK_ONLY_MODELS.get(c["model"], {})
+        tier_eng = meta.get("tier_eng", 30)
+        tier_gen = meta.get("tier_gen", 30)
+        c["score"] = use_case_score(tier_eng, tier_gen, uc_key)
+
+    # Order: upgrade first (if present), then primary, then alt
+    role_order = {"upgrade": 0, "primary": 1, "alt": 2}
+    candidates.sort(key=lambda c: role_order.get(c["role"], 9))
+
+    # Assign rank numbers
+    for i, c in enumerate(candidates):
+        c["rank"] = i + 1
+
+    # Deduplicate (primary and alt could be the same model in some configs)
+    seen = set()
+    unique = []
+    for c in candidates:
+        if c["model"] not in seen:
+            seen.add(c["model"])
+            unique.append(c)
+
+    return unique
+
+
+def get_profile_ranking_table(profile_name):
+    """
+    Build a full ranking table for all use cases on a given profile.
+
+    Returns:
+        dict: {uc_key: [ranked_model_list]} for every key in USE_CASES
+              where work_only is True.
+    """
+    table = {}
+    for uc_key, uc in USE_CASES.items():
+        if uc.get("work_only", False) or uc_key == "gen":
+            table[uc_key] = get_ranked_models_for_profile(profile_name, uc_key)
     return table

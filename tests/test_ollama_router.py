@@ -70,16 +70,12 @@ class TestOllamaRouter:
         mock_response = MagicMock()
         mock_response.status_code = 200
 
-        # Patch httpx.Client so it returns our fake response
-        with patch("src.core.llm_router.httpx.Client") as MockClient:
-            mock_client_instance = MagicMock()
-            mock_client_instance.get.return_value = mock_response
-            MockClient.return_value.__enter__ = Mock(
-                return_value=mock_client_instance
-            )
-            MockClient.return_value.__exit__ = Mock(return_value=False)
+        # Replace the persistent client and clear TTL cache
+        router._health_cache = None
+        router._client = MagicMock()
+        router._client.get.return_value = mock_response
 
-            result = router.is_available()
+        result = router.is_available()
 
         assert result is True, (
             "is_available() should return True when Ollama responds with 200"
@@ -97,15 +93,12 @@ class TestOllamaRouter:
         """
         router = self._make_router()
 
-        with patch("src.core.llm_router.httpx.Client") as MockClient:
-            mock_client_instance = MagicMock()
-            mock_client_instance.get.side_effect = Exception("Connection refused")
-            MockClient.return_value.__enter__ = Mock(
-                return_value=mock_client_instance
-            )
-            MockClient.return_value.__exit__ = Mock(return_value=False)
+        # Replace the persistent client and clear TTL cache
+        router._health_cache = None
+        router._client = MagicMock()
+        router._client.get.side_effect = Exception("Connection refused")
 
-            result = router.is_available()
+        result = router.is_available()
 
         assert result is False, (
             "is_available() should return False when Ollama can't be reached"
@@ -145,16 +138,12 @@ class TestOllamaRouter:
             _time_calls.append(1)
             return 1000.000 if len(_time_calls) == 1 else 1000.050
 
-        with patch("src.core.llm_router.time.time", side_effect=fake_time):
-            with patch("src.core.llm_router.httpx.Client") as MockClient:
-                mock_client_instance = MagicMock()
-                mock_client_instance.post.return_value = mock_response
-                MockClient.return_value.__enter__ = Mock(
-                    return_value=mock_client_instance
-                )
-                MockClient.return_value.__exit__ = Mock(return_value=False)
+        # Replace the persistent client with a mock
+        router._client = MagicMock()
+        router._client.post.return_value = mock_response
 
-                result = router.query("What is the operating frequency?")
+        with patch("src.core.llm_router.time.time", side_effect=fake_time):
+            result = router.query("What is the operating frequency?")
 
         # Verify we got a proper response back
         assert result is not None, "query() should return a response, not None"
@@ -179,17 +168,13 @@ class TestOllamaRouter:
         # Import the actual httpx to get the right exception type
         import httpx as real_httpx
 
-        with patch("src.core.llm_router.httpx.Client") as MockClient:
-            mock_client_instance = MagicMock()
-            mock_client_instance.post.side_effect = real_httpx.HTTPError(
-                "Connection refused"
-            )
-            MockClient.return_value.__enter__ = Mock(
-                return_value=mock_client_instance
-            )
-            MockClient.return_value.__exit__ = Mock(return_value=False)
+        # Replace the persistent client with a mock that raises on POST
+        router._client = MagicMock()
+        router._client.post.side_effect = real_httpx.HTTPError(
+            "Connection refused"
+        )
 
-            result = router.query("Test query")
+        result = router.query("Test query")
 
         assert result is None, (
             "query() should return None on HTTP error, not raise an exception"
@@ -218,15 +203,11 @@ class TestOllamaRouter:
         mock_response.json.return_value = fake_response
         mock_response.raise_for_status = MagicMock()
 
-        with patch("src.core.llm_router.httpx.Client") as MockClient:
-            mock_client_instance = MagicMock()
-            mock_client_instance.post.return_value = mock_response
-            MockClient.return_value.__enter__ = Mock(
-                return_value=mock_client_instance
-            )
-            MockClient.return_value.__exit__ = Mock(return_value=False)
+        # Replace the persistent client with a mock
+        router._client = MagicMock()
+        router._client.post.return_value = mock_response
 
-            result = router.query("What is nothing?")
+        result = router.query("What is nothing?")
 
         assert result is not None
         assert result.text == ""
@@ -254,31 +235,27 @@ class TestOllamaRouter:
         mock_response.json.return_value = fake_response
         mock_response.raise_for_status = MagicMock()
 
-        with patch("src.core.llm_router.httpx.Client") as MockClient:
-            mock_client_instance = MagicMock()
-            mock_client_instance.post.return_value = mock_response
-            MockClient.return_value.__enter__ = Mock(
-                return_value=mock_client_instance
-            )
-            MockClient.return_value.__exit__ = Mock(return_value=False)
+        # Replace the persistent client with a mock
+        router._client = MagicMock()
+        router._client.post.return_value = mock_response
 
-            router.query("My test prompt")
+        router.query("My test prompt")
 
-            # Check what was actually sent to Ollama
-            call_args = mock_client_instance.post.call_args
+        # Check what was actually sent to Ollama
+        call_args = router._client.post.call_args
 
-            # Verify the URL
-            assert "/api/generate" in call_args[0][0], (
-                "Should POST to /api/generate"
-            )
+        # Verify the URL
+        assert "/api/generate" in call_args[0][0], (
+            "Should POST to /api/generate"
+        )
 
-            # Verify the JSON payload
-            sent_payload = call_args[1]["json"]
-            assert sent_payload["model"] == "phi4-mini"
-            assert sent_payload["prompt"] == "My test prompt"
-            assert sent_payload["stream"] is False, (
-                "stream should be False -- we want the full response at once"
-            )
+        # Verify the JSON payload
+        sent_payload = call_args[1]["json"]
+        assert sent_payload["model"] == "phi4-mini"
+        assert sent_payload["prompt"] == "My test prompt"
+        assert sent_payload["stream"] is False, (
+            "stream should be False -- we want the full response at once"
+        )
 
 
 class TestLLMRouter:

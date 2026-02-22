@@ -466,7 +466,7 @@ If using online API:
 | "Database locked" | Another rag-index process running | Wait for it to finish or kill the process |
 | Out of memory during indexing | Batch size too large for RAM | Switch to `laptop_safe` profile |
 | Queries return no results | Documents not indexed | Run `rag-index` first |
-| Poor answer quality | min_score too low, top_k wrong | Adjust in Engineering menu or config |
+| Poor answer quality | min_score too low, top_k wrong | Adjust in Admin menu or config |
 
 ---
 

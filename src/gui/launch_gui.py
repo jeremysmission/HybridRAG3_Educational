@@ -46,11 +46,29 @@ _preload_result = {}   # {"embedder": Embedder | None, "error": str | None}
 _preload_done = threading.Event()
 
 
+def _read_embedding_model_from_config():
+    """Quick YAML read to get embedding.model_name before full boot.
+
+    Returns the configured model name, or None to let Embedder use its
+    class-level DEFAULT_MODEL.  This is intentionally lightweight --
+    just a YAML parse, no config object construction.
+    """
+    try:
+        import yaml
+        cfg_path = os.path.join(_project_root, "config", "default_config.yaml")
+        with open(cfg_path, "r") as f:
+            cfg = yaml.safe_load(f)
+        return cfg.get("embedding", {}).get("model_name") or None
+    except Exception:
+        return None
+
+
 def _preload_embedder():
     """Build the Embedder (torch + model weights) as early as possible."""
     try:
         from src.core.embedder import Embedder
-        e = Embedder()   # default model_name = "all-MiniLM-L6-v2"
+        model_name = _read_embedding_model_from_config()
+        e = Embedder(model_name=model_name)
         # Warm encode: force any lazy init (tokenizer buffers, etc.)
         e.embed_query("warmup")
         _preload_result["embedder"] = e
@@ -110,6 +128,18 @@ def _get_or_build_embedder(model_name, logger):
         return _cached_embedder
 
 
+def clear_embedder_cache():
+    """Clear the cached embedder so the next build uses the new model.
+
+    Called by engineering_menu.py when the user switches to a profile
+    with a different embedding model.  Without this, reset_backends()
+    would reuse the old (wrong-dimension) embedder from cache.
+    """
+    global _cached_embedder
+    with _cached_embedder_lock:
+        _cached_embedder = None
+
+
 def _set_stage(app, stage_text):
     """Schedule a loading-stage update on the GUI main thread."""
     try:
@@ -166,7 +196,10 @@ def _load_backends(app, logger):
 
         def _init_router():
             _set_stage(app, "LLM Router...")
-            r = LLMRouter(config)
+            boot_creds = getattr(
+                getattr(app, "boot_result", None), "credentials", None,
+            )
+            r = LLMRouter(config, credentials=boot_creds)
             logger.info("[OK] LLM router ready")
             return r
 

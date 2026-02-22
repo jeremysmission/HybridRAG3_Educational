@@ -113,6 +113,9 @@ class IndexingProgressCallback:
     def on_error(self, file_path: str, error: str) -> None:
         pass
 
+    def on_discovery_progress(self, files_found: int) -> None:
+        pass
+
 
 # -------------------------------------------------------------------
 # Indexer
@@ -199,10 +202,16 @@ class Indexer:
             raise FileNotFoundError(f"Source folder not found: {folder_path}")
 
         # --- Step 1: Discover all supported files ---
-        raw_files = list(folder.rglob("*")) if recursive else list(folder.glob("*"))
-
+        # Lazy iteration avoids materializing the full rglob list,
+        # saving memory on large directories and providing live
+        # feedback via the discovery callback.
         supported_files: List[Path] = []
-        for f in raw_files:
+        _discovery_count = 0
+        _glob_iter = folder.rglob("*") if recursive else folder.glob("*")
+        for f in _glob_iter:
+            _discovery_count += 1
+            if _discovery_count % 500 == 0:
+                progress_callback.on_discovery_progress(_discovery_count)
             if not f.is_file():
                 continue
             if self._is_excluded(f):
@@ -211,6 +220,8 @@ class Indexer:
                 continue
             supported_files.append(f)
 
+        # Final discovery callback with exact count
+        progress_callback.on_discovery_progress(_discovery_count)
         logger.info("Found %d supported files in %s", len(supported_files), folder)
 
         # --- Step 2: Process each file ---

@@ -13,33 +13,41 @@ hallucination guard, and a centralized network gate enforcing zero-trust
 outbound access control.
 
 ```
-                        INDEXING PIPELINE
-+-----------+     +----------+     +---------+     +-------------+
-|  Source    | --> |  Parser  | --> | Chunker | --> |  Embedder   |
-|  Files    |     | Registry |     | (1200c, |     | MiniLM-L6   |
-| (.pdf,    |     | (24 ext) |     |  200lap)|     | (384-dim)   |
-| .docx,..) |     +----------+     +---------+     +-------------+
-+-----------+                                             |
-                                                          v
-                                                 +----------------+
-                                                 |  VectorStore   |
-                                                 | SQLite + FTS5  |
-                                                 | Memmap float16 |
-                                                 +----------------+
-                                                          |
-                        QUERY PIPELINE                    v
-+-----------+     +-----------+     +---------+     +-------------+
-|  User     | --> | Embedder  | --> |Retriever| --> |  Query      |
-|  Query    |     | (same     |     | Hybrid  |     |  Engine     |
-|           |     |  model)   |     | RRF k=60|     | + LLM call  |
-+-----------+     +-----------+     +---------+     +-------------+
-                                                          |
-                                                          v
-                                                 +----------------+
-                                                 | Hallucination  |
-                                                 | Guard (5-layer)|
-                                                 | (online only)  |
-                                                 +----------------+
+     INDEXING PIPELINE                    QUERY PIPELINE
+
+     Source files                         User question
+     (.pdf, .docx, ...)                        |
+            |                                  v
+            v                           +----------------+
+     +----------------+                 |   Embedder     |
+     | Parser         |                 |  (same model)  |
+     | Registry       |                 +----------------+
+     | (24+ ext)      |                        |
+     +----------------+                        v
+            |                           +----------------+
+            v                           |   Retriever    |
+     +----------------+                 |  Hybrid search |
+     | Chunker        |                 |  RRF k=60      |
+     | (1200c, 200    |                 +----------------+
+     |  overlap)      |                        |
+     +----------------+                        v
+            |                           +----------------+
+            v                           |  Query Engine  |
+     +----------------+                 |  9-rule prompt |
+     | Embedder       |                 |  + LLM call    |
+     | MiniLM-L6-v2   |                 +----------------+
+     | (384-dim)      |                        |
+     +----------------+                        v
+            |                           +----------------+
+            v                           | Hallucination  |
+     +----------------+                 | Guard          |
+     | VectorStore    |                 | (5-layer,      |
+     | SQLite + FTS5  |                 |  online only)  |
+     | Memmap f16     |                 +----------------+
+     +----------------+
+            ^                                  |
+            |                                  |
+            +--- Retriever reads from here ----+
 ```
 
 **Design priorities**: Offline operation, crash safety, low RAM usage,
@@ -78,7 +86,6 @@ parsers/registry.py  (extension -> parser class mapping)
 gui/                         (tkinter desktop application, dark/light theme)
   |-- app.py                 (main window, panel composition)
   |-- theme.py               (dark/light theme definitions, toggle logic)
-  |-- stubs.py               (temporary stubs for Window 2 model routing)
   |-- launch_gui.py          (entry point, boot + background loading)
   +-- panels/
       |-- query_panel.py     (question input, answer display, metrics)
@@ -392,8 +399,8 @@ Offline mode always works even without API configuration.
 - **Index Panel**: Folder picker, Start/Stop, progress bar, status
 - **Status Bar**: Live 5-second refresh -- Ollama status, LLM model,
   Network Gate mode (color-coded green/red)
-- **Engineering Menu**: Retrieval sliders (top_k, min_score, rrf_k),
-  LLM tuning (temperature, timeout), profile switching
+- **Admin Menu**: Retrieval sliders (top_k, min_score, rrf_k),
+  LLM tuning (temperature, timeout), profile switching, model ranking
 
 **Threading safety**: All background work uses `queue.Queue` for
 thread-to-GUI communication. `threading.Event` for cancellation.
@@ -497,7 +504,7 @@ embeddings_meta.json ({"dim": 384, "count": N, "dtype": "float16"})
 ## 14. Model Compliance
 
 All offline models must pass regulatory review before deployment.
-Full audit: `docs/enterprise_MODEL_AUDIT.md`.
+Full audit: `docs/MODEL_AUDIT.md`.
 
 **Approved publishers**: Microsoft (MIT), Mistral AI (Apache 2.0),
 Google (Apache 2.0), NVIDIA (Apache 2.0).

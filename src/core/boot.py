@@ -50,6 +50,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
+import threading
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -279,35 +280,49 @@ def boot_hybridrag(config_path=None) -> BootResult:
         result.warnings.append("Skipping API client -- credentials incomplete")
         logger.info("BOOT Step 3: Skipped (credentials incomplete)")
 
-    # === STEP 4: Check Ollama (Offline Mode) ===
-    logger.info("BOOT Step 4: Checking Ollama...")
-    try:
-        import urllib.request
-        from src.core.network_gate import get_gate
+    # === STEP 4: Check Ollama (non-blocking) ===
+    # Ollama is localhost -- responds in <50ms when running. Run the check
+    # in a daemon thread with a short join timeout so boot is not blocked
+    # for 3s if Ollama is down or slow to respond.
+    logger.info("BOOT Step 4: Checking Ollama (non-blocking)...")
 
-        ollama_host = config.get("ollama", {}).get("host", "http://localhost:11434")
+    def _check_ollama():
+        try:
+            import urllib.request
+            import urllib.error
+            from src.core.network_gate import get_gate
+            ollama_host = config.get("ollama", {}).get(
+                "host", "http://localhost:11434",
+            )
+            get_gate().check_allowed(
+                f"{ollama_host}/api/tags", "ollama_boot_check", "boot",
+            )
+            req = urllib.request.Request(
+                f"{ollama_host}/api/tags", method="GET",
+            )
+            response = urllib.request.urlopen(req, timeout=3)
+            if response.status == 200:
+                result.offline_available = True
+                logger.info("BOOT Step 4: Ollama is running")
+            else:
+                result.warnings.append(
+                    "Ollama responded but with unexpected status"
+                )
+        except Exception:
+            result.warnings.append(
+                "Ollama is not running -- offline mode unavailable"
+            )
+            logger.info("BOOT Step 4: Ollama not reachable")
 
-        # Gate check (localhost is always allowed in offline and online modes)
-        get_gate().check_allowed(
-            f"{ollama_host}/api/tags", "ollama_boot_check", "boot",
-        )
+    ollama_thread = threading.Thread(target=_check_ollama, daemon=True)
+    ollama_thread.start()
+    ollama_thread.join(timeout=0.5)
 
-        req = urllib.request.Request(
-            f"{ollama_host}/api/tags",
-            method="GET",
-        )
-        response = urllib.request.urlopen(req, timeout=3)
-        if response.status == 200:
-            result.offline_available = True
-            logger.info("BOOT Step 4: Ollama is running")
-        else:
-            result.warnings.append("Ollama responded but with unexpected status")
-    except urllib.error.URLError:
-        result.warnings.append("Ollama is not running -- offline mode unavailable")
-        logger.info("BOOT Step 4: Ollama not reachable")
-    except Exception as e:
-        result.warnings.append(f"Ollama check failed: {e}")
-        logger.info("BOOT Step 4: Ollama check error: %s", e)
+    if ollama_thread.is_alive():
+        # Ollama slow or down -- don't block boot any longer.
+        # Status bar will verify availability within 30s.
+        result.offline_available = True
+        logger.info("BOOT Step 4: Ollama check timed out, assuming available")
 
     # === FINAL: Determine overall success ===
     result.success = result.online_available or result.offline_available

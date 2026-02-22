@@ -385,15 +385,15 @@ rag-profile desktop_power      # Switch to desktop profile
 rag-profile server_max         # Switch to server profile
 ```
 
-In the GUI, profiles can be switched from **Engineering** >
-**Engineering Settings**.
+In the GUI, profiles can be switched from **Admin** >
+**Admin Settings**.
 
 ---
 
-## 8. Engineering Tuning
+## 8. Admin Tuning
 
-Open the engineering menu from the GUI: **Engineering** >
-**Engineering Settings**. Changes take effect immediately.
+Open the admin menu from the GUI: **Admin** >
+**Admin Settings**. Changes take effect immediately.
 
 ### Retrieval Settings
 
@@ -536,7 +536,7 @@ question type. When in doubt:
 | "Cannot switch to online mode" | Credentials missing | Run `rag-store-key` and `rag-store-endpoint` |
 | `[FAIL] 401 / Unauthorized` | Invalid API key | Run `rag-store-key` with a valid key |
 | `[FAIL] 404 / NotFound` | Wrong endpoint URL | Check with `rag-cred-status`, re-run `rag-store-endpoint` |
-| `[FAIL] Timeout` | LLM too slow | Raise timeout in Engineering menu (120 sec for offline CPU) |
+| `[FAIL] Timeout` | LLM too slow | Raise timeout in Admin menu (120 sec for offline CPU) |
 | Out of memory during indexing | Batch size too large | Switch to `laptop_safe` profile |
 | Slow indexing | Normal on CPU-only machines | Switch to `desktop_power` profile or run overnight |
 | Progress bar does not move | Processing a very large file | Normal for 500-page PDFs. Wait or click Stop. |

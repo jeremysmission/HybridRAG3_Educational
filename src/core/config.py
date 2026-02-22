@@ -55,7 +55,24 @@ from typing import List
 
 # Guard config lives in its own file to keep config.py under 500 lines.
 # Re-exported here so callers can do: from src.core.config import HallucinationGuardConfig
-from src.core.guard_config import HallucinationGuardConfig
+# Conditional import: guard_config.py is excluded from the educational repo
+# sync (tools/sync_to_educational.py). Without this fallback, config.py
+# fails to import on machines running the educational copy.
+try:
+    from src.core.guard_config import HallucinationGuardConfig
+except ImportError:
+    @dataclass
+    class HallucinationGuardConfig:
+        """Stub -- full version lives in src/core/guard_config.py."""
+        enabled: bool = False
+        threshold: float = 0.80
+        failure_action: str = "block"
+        nli_model: str = ""
+        model_cache_dir: str = ".model_cache"
+        enable_dual_path: bool = False
+        chunk_prune_k: int = 3
+        shortcircuit_pass: int = 5
+        shortcircuit_fail: int = 3
 
 
 # -------------------------------------------------------------------

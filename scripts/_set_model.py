@@ -46,6 +46,8 @@ from _model_meta import (
     format_price,
     USE_CASES,
     _LETTER_TO_UC,
+    _PROFILE_VRAM,
+    RECOMMENDED_OFFLINE,
     use_case_score,
 )
 
@@ -288,18 +290,63 @@ def prompt_use_case():
 # PROMPT 3a: Pick offline model
 # ============================================================================
 
+def _detect_current_profile():
+    """Read the current profile from config or infer from ollama.model.
+
+    Returns profile name string. Falls back to 'laptop_safe'.
+    """
+    try:
+        with open(_config_path(), "r") as f:
+            cfg = yaml.safe_load(f)
+        # Check for explicit profile key
+        prof = (cfg or {}).get("profile")
+        if prof and prof in _PROFILE_VRAM:
+            return prof
+        # Infer from current ollama model
+        current_llm = (cfg or {}).get("ollama", {}).get("model", "")
+        if current_llm in ("mistral-nemo:12b",):
+            return "desktop_power"
+        if current_llm in ("phi4:14b-q4_K_M",):
+            return "server_max"
+    except Exception:
+        pass
+    return "laptop_safe"
+
+
 def prompt_pick_offline(models, uc_key, current_model):
     uc = USE_CASES[uc_key]
     label = uc["label"]
+
+    # Detect hardware profile for VRAM filtering
+    profile = _detect_current_profile()
+    max_vram = _PROFILE_VRAM.get(profile, 0)
+
+    # Filter by VRAM budget (skip for CPU-only profiles -- all run via RAM)
+    if max_vram > 0:
+        models = [m for m in models if m.get("vram_gb", 0) <= max_vram]
 
     # Compute use-case score for each model and sort
     for m in models:
         m["_score"] = use_case_score(m["tier_eng"], m["tier_gen"], uc_key)
     models.sort(key=lambda m: m["_score"], reverse=True)
 
+    # Bump the recommended model to top if it's in the list
+    rec = RECOMMENDED_OFFLINE.get(uc_key, {})
+    # Pick best recommended: upgrade > primary > alt (based on profile)
+    recommended = None
+    if max_vram > 0 and rec.get("upgrade"):
+        recommended = rec["upgrade"]
+    if not recommended:
+        recommended = rec.get("primary")
+    if recommended:
+        for i, m in enumerate(models):
+            if m["name"] == recommended and i > 0:
+                models.insert(0, models.pop(i))
+                break
+
     divider()
     print()
-    print(f"  Models ranked for: {label}")
+    print(f"  Models ranked for: {label}  (profile: {profile})")
     print()
 
     print(f"  {'#':>4}   {'Model':<32}  {'Size':>6}"

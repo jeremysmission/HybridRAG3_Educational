@@ -10,18 +10,25 @@
 #   Text:        #ffffff
 #   Input bg:    #3c3c3c
 #   Accent:      #0078d4
-#   Font:        Segoe UI 10pt
-#   Buttons:     flat, rounded, 6px padding
+#   Font:        Segoe UI 11pt (body), 15pt (title), 10pt (small/mono)
+#
+# Button hierarchy (research-based sizing):
+#   Primary  (Accent.TButton):   24x10 padding, bold  -- Ask, Start Indexing
+#   Secondary (TButton):         16x8 padding, normal -- Browse, Run Test
+#   Tertiary (Tertiary.TButton): 12x6 padding, subtle -- Reset, Stop, Close
+#
+# Spacing: 8px grid (0, 4, 8, 16, 24, 32)
 # ============================================================================
 
 from tkinter import ttk
 
 FONT_FAMILY = "Segoe UI"
-FONT_SIZE = 10
+FONT_SIZE = 11
 FONT = (FONT_FAMILY, FONT_SIZE)
 FONT_BOLD = (FONT_FAMILY, FONT_SIZE, "bold")
-FONT_TITLE = (FONT_FAMILY, 13, "bold")
-FONT_SMALL = (FONT_FAMILY, 9)
+FONT_TITLE = (FONT_FAMILY, 15, "bold")
+FONT_SMALL = (FONT_FAMILY, 10)
+FONT_MONO = ("Consolas", 10)
 
 DARK = {
     "name": "dark",
@@ -118,19 +125,28 @@ def apply_ttk_styles(theme_dict):
     style.configure("TLabelframe.Label", background=t["panel_bg"],
                      foreground=t["accent"], font=FONT_BOLD)
 
-    # TButton
+    # TButton (secondary actions: Browse, Run Test)
     style.configure("TButton", background=t["accent"],
                      foreground=t["accent_fg"], font=FONT,
-                     padding=(6, 4), relief="flat", borderwidth=0)
+                     padding=(16, 8), relief="flat", borderwidth=0)
     style.map("TButton",
               background=[("active", t["accent_hover"]),
                           ("disabled", t["disabled_fg"])],
               foreground=[("disabled", t["bg"])])
 
-    # Accent.TButton (for the main action buttons)
+    # Accent.TButton (primary actions: Ask, Start Indexing)
     style.configure("Accent.TButton", background=t["accent"],
                      foreground=t["accent_fg"], font=FONT_BOLD,
-                     padding=(6, 4), relief="flat")
+                     padding=(24, 10), relief="flat")
+
+    # Tertiary.TButton (subtle actions: Reset, Stop, Close, Theme)
+    style.configure("Tertiary.TButton", background=t["input_bg"],
+                     foreground=t["fg"], font=FONT,
+                     padding=(12, 6), relief="flat", borderwidth=0)
+    style.map("Tertiary.TButton",
+              background=[("active", t["border"]),
+                          ("disabled", t["disabled_fg"])],
+              foreground=[("disabled", t["bg"])])
     style.map("Accent.TButton",
               background=[("active", t["accent_hover"])])
 
@@ -177,3 +193,42 @@ def apply_ttk_styles(theme_dict):
                      bordercolor=t["border"])
     style.map("TScrollbar",
               background=[("active", t["scrollbar_fg"])])
+
+
+def _lighten_hex(hex_color, factor=0.15):
+    """Lighten a hex color by blending toward white."""
+    r = int(hex_color[1:3], 16)
+    g = int(hex_color[3:5], 16)
+    b = int(hex_color[5:7], 16)
+    r = min(255, int(r + (255 - r) * factor))
+    g = min(255, int(g + (255 - g) * factor))
+    b = min(255, int(b + (255 - b) * factor))
+    return "#{:02x}{:02x}{:02x}".format(r, g, b)
+
+
+def bind_hover(widget, normal_bg=None, normal_fg=None):
+    """Bind Enter/Leave events for hover feedback on a tk.Button.
+
+    Call this after creating any tk.Button to give it a visible hover
+    state.  On mouse enter the background lightens slightly; on leave
+    it reverts.  Disabled buttons are skipped automatically.
+    """
+    if normal_bg is None:
+        normal_bg = str(widget.cget("bg"))
+    if normal_fg is None:
+        normal_fg = str(widget.cget("fg"))
+    hover_bg = _lighten_hex(normal_bg)
+
+    def on_enter(event):
+        if str(widget.cget("state")) != "disabled":
+            widget.config(bg=hover_bg)
+
+    def on_leave(event):
+        if str(widget.cget("state")) != "disabled":
+            widget.config(bg=normal_bg)
+
+    widget.bind("<Enter>", on_enter)
+    widget.bind("<Leave>", on_leave)
+    # Store refs so theme changes can rebind
+    widget._hover_normal_bg = normal_bg
+    widget._hover_normal_fg = normal_fg

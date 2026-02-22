@@ -45,17 +45,18 @@ logger = logging.getLogger(__name__)
 
 import httpx
 
-# -- Import the official OpenAI SDK -----------------------------------------
-# This is the same library your company's example code uses:
-#   from openai import AzureOpenAI
-# It handles URL construction, auth headers, retries, and error handling
-# automatically. No more hand-building URLs or guessing header formats.
+# -- OpenAI SDK is imported lazily inside APIRouter.__init__() ----------------
+# This avoids loading the SDK (~50ms) at module import time, which matters
+# in offline mode where the SDK is never used.
 # ---------------------------------------------------------------------------
-try:
-    from openai import AzureOpenAI, OpenAI
-    OPENAI_SDK_AVAILABLE = True
-except ImportError:
-    OPENAI_SDK_AVAILABLE = False
+
+def _openai_sdk_available():
+    """Check if the openai SDK is installed (lazy, no import at module load)."""
+    try:
+        import openai  # noqa: F401
+        return True
+    except ImportError:
+        return False
 
 # -- Import HybridRAG internals ---------------------------------------------
 from .config import Config
@@ -111,6 +112,13 @@ class OllamaRouter:
         # Base URL for the local Ollama server
         self.base_url = config.ollama.base_url.rstrip("/")
 
+        # Persistent HTTP client -- reuses TCP connections across calls
+        self._client = httpx.Client()
+
+        # Health check cache: (available: bool, timestamp: float) with TTL
+        self._health_cache = None
+        self._health_ttl = 30  # seconds between live checks
+
     def is_available(self) -> bool:
         """
         Check if Ollama is running and reachable.
@@ -123,20 +131,20 @@ class OllamaRouter:
             If Ollama is running, it responds with "Ollama is running".
             If not, the connection fails and we return False.
         """
-        try:
-            # -- Network gate check --
-            # Even localhost connections go through the gate so they
-            # appear in the audit log. The gate allows localhost in
-            # both offline and online modes.
-            get_gate().check_allowed(self.base_url, "ollama_health", "ollama_router")
+        # Return cached result if still fresh (avoids TCP roundtrip every 5s)
+        now = time.time()
+        if self._health_cache and (now - self._health_cache[1]) < self._health_ttl:
+            return self._health_cache[0]
 
-            with httpx.Client(timeout=5) as client:
-                resp = client.get(self.base_url)
-                return resp.status_code == 200
-        except NetworkBlockedError:
-            return False
-        except Exception:
-            return False
+        try:
+            get_gate().check_allowed(self.base_url, "ollama_health", "ollama_router")
+            resp = self._client.get(self.base_url, timeout=5)
+            result = resp.status_code == 200
+        except (NetworkBlockedError, Exception):
+            result = False
+
+        self._health_cache = (result, now)
+        return result
 
     def query(self, prompt: str) -> Optional[LLMResponse]:
         """
@@ -169,12 +177,12 @@ class OllamaRouter:
         }
 
         try:
-            with httpx.Client(timeout=self.config.ollama.timeout_seconds) as client:
-                resp = client.post(
-                    f"{self.base_url}/api/generate",
-                    json=payload,
-                )
-                resp.raise_for_status()
+            resp = self._client.post(
+                f"{self.base_url}/api/generate",
+                json=payload,
+                timeout=self.config.ollama.timeout_seconds,
+            )
+            resp.raise_for_status()
 
             data = resp.json()
             response_text = data.get("response", "")
@@ -204,6 +212,11 @@ class OllamaRouter:
         except Exception as e:
             self.logger.error("ollama_error", error=str(e))
             return None
+
+    def close(self):
+        """Release the persistent HTTP client."""
+        if hasattr(self, "_client") and self._client:
+            self._client.close()
 
 
 # ============================================================================
@@ -315,8 +328,10 @@ class APIRouter:
             )
             return
 
-        # -- Check if the openai SDK is available --
-        if not OPENAI_SDK_AVAILABLE:
+        # -- Lazy import openai SDK (not loaded at module level) --
+        try:
+            from openai import AzureOpenAI, OpenAI
+        except ImportError:
             self.client = None
             self.logger.error(
                 "openai_sdk_missing",
@@ -722,7 +737,7 @@ class APIRouter:
             "provider": "azure_openai" if self.is_azure else "openai",
             "endpoint": self.base_endpoint,
             "api_configured": self.client is not None,
-            "sdk_available": OPENAI_SDK_AVAILABLE,
+            "sdk_available": _openai_sdk_available(),
             "sdk": "openai_official",
         }
         if self.is_azure:
@@ -823,7 +838,7 @@ def get_available_deployments():
 
             url = f"{base}/openai/deployments?api-version={api_version}"
 
-            with httpx.Client(timeout=15, verify=True) as client:
+            with httpx.Client(timeout=3, verify=True) as client:
                 resp = client.get(
                     url,
                     headers={
@@ -859,7 +874,7 @@ def get_available_deployments():
             # OpenAI/OpenRouter path: GET {endpoint}/models
             url = f"{endpoint}/models"
 
-            with httpx.Client(timeout=15, verify=True) as client:
+            with httpx.Client(timeout=3, verify=True) as client:
                 resp = client.get(
                     url,
                     headers={
@@ -931,13 +946,15 @@ class LLMRouter:
         "online"  --> Azure OpenAI API (company cloud, costs money)
     """
 
-    def __init__(self, config: Config, api_key: Optional[str] = None):
+    def __init__(self, config: Config, api_key: Optional[str] = None,
+                 credentials=None):
         """
         Initialize the router and set up both backends.
 
         Args:
             config:  The HybridRAG configuration object
             api_key: Optional explicit API key (overrides all other sources)
+            credentials: Pre-resolved credentials from boot (skips keyring lookup)
 
         Credential resolution order (tries each in sequence):
             1. Explicit api_key parameter (for testing)
@@ -953,33 +970,34 @@ class LLMRouter:
         # This is lightweight and doesn't need any credentials
         self.ollama = OllamaRouter(config)
 
-        # -- Resolve ALL credentials through the single canonical resolver --
-        # This replaces 45 lines of duplicate env-var/keyring logic that
-        # previously lived here. Now there is ONE resolver, ONE alias list,
-        # ONE keyring schema. If the caller passed an explicit api_key
-        # (e.g. from a test), we use that; otherwise resolve_credentials()
-        # checks keyring -> env vars -> config in priority order.
+        # -- Resolve credentials -------------------------------------------
+        # Use pre-resolved credentials from boot if available (saves the
+        # 10-50ms keyring lookup). Otherwise resolve from scratch.
         resolved_key = api_key
         resolved_endpoint = ""
         resolved_deployment = ""
         resolved_api_version = ""
 
-        try:
-            from ..security.credentials import resolve_credentials
-            # Pass config as dict so the resolver can read YAML fallbacks
-            config_dict = None
-            if hasattr(config, "to_dict"):
-                config_dict = config.to_dict()
-            elif hasattr(config, "api"):
-                config_dict = {
-                    "api": {
-                        "endpoint": config.api.endpoint or "",
-                        "deployment": config.api.deployment or "",
-                        "api_version": config.api.api_version or "",
+        creds = credentials
+        if creds is None:
+            try:
+                from ..security.credentials import resolve_credentials
+                config_dict = None
+                if hasattr(config, "to_dict"):
+                    config_dict = config.to_dict()
+                elif hasattr(config, "api"):
+                    config_dict = {
+                        "api": {
+                            "endpoint": config.api.endpoint or "",
+                            "deployment": config.api.deployment or "",
+                            "api_version": config.api.api_version or "",
+                        }
                     }
-                }
-            creds = resolve_credentials(config_dict)
+                creds = resolve_credentials(config_dict)
+            except ImportError:
+                self.logger.warning("llm_router_credentials_import_failed")
 
+        if creds is not None:
             if not resolved_key and creds.api_key:
                 resolved_key = creds.api_key
             if creds.endpoint:
@@ -991,12 +1009,9 @@ class LLMRouter:
 
             self.logger.info(
                 "llm_router_creds_resolved",
-                key_source=creds.source_key or "caller",
-                endpoint_source=creds.source_endpoint or "config",
+                key_source=getattr(creds, "source_key", "") or "caller",
+                endpoint_source=getattr(creds, "source_endpoint", "") or "config",
             )
-        except ImportError:
-            # If credentials module can't load, fall through to no-API mode
-            self.logger.warning("llm_router_credentials_import_failed")
 
         # NOTE: We do NOT mutate config.api.endpoint here.
         # The gate was already configured with the correct endpoint by
@@ -1051,7 +1066,7 @@ class LLMRouter:
             "mode": self.config.mode,
             "ollama_available": self.ollama.is_available(),
             "api_configured": self.api is not None,
-            "sdk_available": OPENAI_SDK_AVAILABLE,
+            "sdk_available": _openai_sdk_available(),
         }
 
         if self.api:

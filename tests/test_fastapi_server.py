@@ -93,8 +93,10 @@ class TestConfig:
     def test_config_has_embedding_model(self, client):
         r = client.get("/config")
         data = r.json()
-        assert data["embedding_model"] == "all-MiniLM-L6-v2"
-        assert data["embedding_dimension"] == 384
+        assert "embedding_model" in data
+        assert isinstance(data["embedding_model"], str)
+        assert "embedding_dimension" in data
+        assert isinstance(data["embedding_dimension"], int)
 
     def test_config_has_retrieval_settings(self, client):
         r = client.get("/config")

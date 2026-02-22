@@ -79,9 +79,9 @@ When the answer appears:
 
 ---
 
-**BEAT 3: Engineering Menu (30 seconds)**
+**BEAT 3: Admin Menu (30 seconds)**
 
-Click **Engineering > Engineering Settings**.
+Click **Admin > Admin Settings**.
 
 > *"For technical users, everything is tunable. You can adjust how many
 > document chunks to retrieve, change the similarity threshold, switch

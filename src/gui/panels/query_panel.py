@@ -14,7 +14,7 @@ import logging
 
 from scripts._model_meta import USE_CASES, select_best_model
 from src.core.llm_router import get_available_deployments
-from src.gui.theme import current_theme, FONT, FONT_BOLD
+from src.gui.theme import current_theme, FONT, FONT_BOLD, FONT_MONO, bind_hover
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ class QueryPanel(tk.LabelFrame):
 
     def __init__(self, parent, config, query_engine=None):
         t = current_theme()
-        super().__init__(parent, text="Query Panel", padx=8, pady=8,
+        super().__init__(parent, text="Query Panel", padx=16, pady=16,
                          bg=t["panel_bg"], fg=t["accent"],
                          font=FONT_BOLD)
         self.config = config
@@ -38,14 +38,15 @@ class QueryPanel(tk.LabelFrame):
 
         self._build_widgets(t)
 
-        # Trigger initial model selection
-        self._on_use_case_change()
+        # Defer initial model selection so GUI renders immediately.
+        # get_available_deployments() may do a network call on first use.
+        self.after(100, self._on_use_case_change)
 
     def _build_widgets(self, t):
         """Build all child widgets with theme colors."""
         # -- Row 0: Use case selector --
         row0 = tk.Frame(self, bg=t["panel_bg"])
-        row0.pack(fill=tk.X, pady=(0, 4))
+        row0.pack(fill=tk.X, pady=(0, 8))
 
         self.uc_label = tk.Label(row0, text="Use case:", bg=t["panel_bg"],
                                  fg=t["fg"], font=FONT)
@@ -64,7 +65,7 @@ class QueryPanel(tk.LabelFrame):
 
         # -- Row 1: Model display (read-only) --
         row1 = tk.Frame(self, bg=t["panel_bg"])
-        row1.pack(fill=tk.X, pady=(0, 4))
+        row1.pack(fill=tk.X, pady=(0, 8))
 
         self.model_text_label = tk.Label(row1, text="Model:", bg=t["panel_bg"],
                                          fg=t["fg"], font=FONT)
@@ -77,23 +78,30 @@ class QueryPanel(tk.LabelFrame):
         )
         self.model_label.pack(side=tk.LEFT, fill=tk.X)
 
-        # -- Row 2: Question entry --
+        # -- Row 2: Question label + entry + Ask button --
+        self.question_label = tk.Label(
+            self, text="Question:", bg=t["panel_bg"],
+            fg=t["fg"], font=FONT, anchor=tk.W,
+        )
+        self.question_label.pack(fill=tk.X, pady=(0, 4))
+
         row2 = tk.Frame(self, bg=t["panel_bg"])
-        row2.pack(fill=tk.X, pady=(0, 4))
+        row2.pack(fill=tk.X, pady=(0, 8))
 
         self.question_entry = tk.Entry(
             row2, font=FONT, bg=t["input_bg"], fg=t["input_fg"],
             insertbackground=t["fg"], relief=tk.FLAT, bd=2,
         )
-        self.question_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        self.question_entry.insert(0, "Ask a question...")
+        self.question_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, ipady=4)
+        self.question_entry.insert(0, "Type your question here...")
         self.question_entry.bind("<FocusIn>", self._on_entry_focus)
         self.question_entry.bind("<Return>", self._on_ask)
 
         self.ask_btn = tk.Button(
-            row2, text="Ask", command=self._on_ask, width=8,
-            bg=t["inactive_btn_bg"], fg=t["inactive_btn_fg"], font=FONT,
-            relief=tk.FLAT, bd=0, padx=6, pady=2, state=tk.DISABLED,
+            row2, text="Ask", command=self._on_ask, width=10,
+            bg=t["inactive_btn_bg"], fg=t["inactive_btn_fg"],
+            font=FONT_BOLD, relief=tk.FLAT, bd=0,
+            padx=24, pady=8, state=tk.DISABLED,
             activebackground=t["accent_hover"],
             activeforeground=t["accent_fg"],
         )
@@ -110,7 +118,7 @@ class QueryPanel(tk.LabelFrame):
         self.answer_text = scrolledtext.ScrolledText(
             self, height=10, wrap=tk.WORD, state=tk.DISABLED,
             font=FONT, bg=t["input_bg"], fg=t["input_fg"],
-            insertbackground=t["fg"], relief=tk.FLAT, bd=2,
+            insertbackground=t["fg"], relief=tk.FLAT, bd=1,
             selectbackground=t["accent"],
             selectforeground=t["accent_fg"],
         )
@@ -121,12 +129,12 @@ class QueryPanel(tk.LabelFrame):
             self, text="Sources: (none)", anchor=tk.W, fg=t["gray"],
             bg=t["panel_bg"], font=FONT,
         )
-        self.sources_label.pack(fill=tk.X, pady=(4, 0))
+        self.sources_label.pack(fill=tk.X, pady=(8, 0))
 
-        # -- Metrics line --
+        # -- Metrics line (monospace for aligned numbers) --
         self.metrics_label = tk.Label(
             self, text="", anchor=tk.W, fg=t["gray"],
-            bg=t["panel_bg"], font=FONT,
+            bg=t["panel_bg"], font=FONT_MONO,
         )
         self.metrics_label.pack(fill=tk.X)
 
@@ -152,6 +160,7 @@ class QueryPanel(tk.LabelFrame):
                                             activebackground=t["accent_hover"])
 
         self.model_label.configure(fg=t["accent"], bg=t["panel_bg"])
+        self.question_label.configure(bg=t["panel_bg"], fg=t["fg"])
         self.network_label.configure(bg=t["panel_bg"], fg=t["gray"])
         self.answer_text.configure(bg=t["input_bg"], fg=t["input_fg"],
                                    insertbackground=t["fg"],
@@ -166,7 +175,7 @@ class QueryPanel(tk.LabelFrame):
 
     def _on_entry_focus(self, event=None):
         """Clear placeholder text on first focus."""
-        if self.question_entry.get() == "Ask a question...":
+        if self.question_entry.get() == "Type your question here...":
             self.question_entry.delete(0, tk.END)
 
     def _on_use_case_change(self, event=None):
@@ -174,17 +183,26 @@ class QueryPanel(tk.LabelFrame):
         idx = self._uc_labels.index(self.uc_var.get()) if self.uc_var.get() in self._uc_labels else 0
         uc_key = self._uc_keys[idx]
 
-        deployments = get_available_deployments()
-        best = select_best_model(uc_key, deployments)
-        if best:
-            self.model_var.set("{} (auto-selected)".format(best))
+        mode = getattr(self.config, "mode", "offline")
+        if mode == "offline":
+            # Offline: show the configured Ollama model directly
+            ollama_model = getattr(
+                getattr(self.config, "ollama", None), "model", ""
+            ) or "phi4-mini"
+            self.model_var.set("{} (offline)".format(ollama_model))
         else:
-            self.model_var.set("(no model available)")
+            # Online: auto-select best from available API deployments
+            deployments = get_available_deployments()
+            best = select_best_model(uc_key, deployments)
+            if best:
+                self.model_var.set("{} (auto-selected)".format(best))
+            else:
+                self.model_var.set("(no model available)")
 
     def _on_ask(self, event=None):
         """Handle Ask button click or Enter key."""
         question = self.question_entry.get().strip()
-        if not question or question == "Ask a question...":
+        if not question or question == "Type your question here...":
             return
 
         if self.query_engine is None:

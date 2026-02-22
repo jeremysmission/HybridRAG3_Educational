@@ -58,8 +58,8 @@ class TestAPIRouter:
             with patch("src.core.llm_router.get_app_logger") as mock_logger:
                 mock_logger.return_value = MagicMock()
 
-                with patch("src.core.llm_router.OpenAI") as MockOpenAI:
-                    with patch("src.core.llm_router.AzureOpenAI") as MockAzure:
+                with patch("openai.OpenAI") as MockOpenAI:
+                    with patch("openai.AzureOpenAI") as MockAzure:
                         from src.core.llm_router import APIRouter
                         router = APIRouter(config, api_key, endpoint)
 
@@ -193,35 +193,34 @@ class TestAPIRouter:
             with patch("src.core.llm_router.get_app_logger") as mock_logger:
                 mock_logger.return_value = MagicMock()
 
-                with patch("src.core.llm_router.OPENAI_SDK_AVAILABLE", True):
-                    with patch("src.core.llm_router.OpenAI") as MockOpenAI:
-                        with patch("src.core.llm_router.time.time", side_effect=fake_time):
-                            # Build a fake SDK response object
-                            # This mimics what openai.ChatCompletion actually returns
-                            mock_choice = MagicMock()
-                            mock_choice.message.content = "The answer is 42."
+                with patch("openai.OpenAI") as MockOpenAI:
+                    with patch("src.core.llm_router.time.time", side_effect=fake_time):
+                        # Build a fake SDK response object
+                        # This mimics what openai.ChatCompletion actually returns
+                        mock_choice = MagicMock()
+                        mock_choice.message.content = "The answer is 42."
 
-                            mock_usage = MagicMock()
-                            mock_usage.prompt_tokens = 200
-                            mock_usage.completion_tokens = 30
+                        mock_usage = MagicMock()
+                        mock_usage.prompt_tokens = 200
+                        mock_usage.completion_tokens = 30
 
-                            mock_completion = MagicMock()
-                            mock_completion.choices = [mock_choice]
-                            mock_completion.usage = mock_usage
-                            mock_completion.model = "gpt-3.5-turbo"
+                        mock_completion = MagicMock()
+                        mock_completion.choices = [mock_choice]
+                        mock_completion.usage = mock_usage
+                        mock_completion.model = "gpt-3.5-turbo"
 
-                            mock_client = MagicMock()
-                            mock_client.chat.completions.create.return_value = (
-                                mock_completion
-                            )
-                            MockOpenAI.return_value = mock_client
+                        mock_client = MagicMock()
+                        mock_client.chat.completions.create.return_value = (
+                            mock_completion
+                        )
+                        MockOpenAI.return_value = mock_client
 
-                            from src.core.llm_router import APIRouter
-                            router = APIRouter(
-                                config, "test-key", "https://openrouter.ai/api/v1"
-                            )
+                        from src.core.llm_router import APIRouter
+                        router = APIRouter(
+                            config, "test-key", "https://openrouter.ai/api/v1"
+                        )
 
-                            result = router.query("What is the meaning of life?")
+                        result = router.query("What is the meaning of life?")
 
         assert result is not None
         assert result.text == "The answer is 42."
@@ -241,10 +240,11 @@ class TestAPIRouter:
         """
         config = FakeConfig(mode="online")
 
+        import sys
         with patch("src.core.llm_router.get_app_logger") as mock_logger:
             mock_logger.return_value = MagicMock()
 
-            with patch("src.core.llm_router.OPENAI_SDK_AVAILABLE", False):
+            with patch.dict(sys.modules, {"openai": None}):
                 from src.core.llm_router import APIRouter
                 router = APIRouter(config, "test-key", "https://fake.com")
 
@@ -275,20 +275,19 @@ class TestAPIRouter:
             with patch("src.core.llm_router.get_app_logger") as mock_logger:
                 mock_logger.return_value = mock_log_instance
 
-                with patch("src.core.llm_router.OPENAI_SDK_AVAILABLE", True):
-                    with patch("src.core.llm_router.OpenAI") as MockOpenAI:
-                        mock_client = MagicMock()
-                        mock_client.chat.completions.create.side_effect = (
-                            Exception("Error code: 401 - Unauthorized")
-                        )
-                        MockOpenAI.return_value = mock_client
+                with patch("openai.OpenAI") as MockOpenAI:
+                    mock_client = MagicMock()
+                    mock_client.chat.completions.create.side_effect = (
+                        Exception("Error code: 401 - Unauthorized")
+                    )
+                    MockOpenAI.return_value = mock_client
 
-                        from src.core.llm_router import APIRouter
-                        router = APIRouter(
-                            config, "bad-key", "https://openrouter.ai/api/v1"
-                        )
+                    from src.core.llm_router import APIRouter
+                    router = APIRouter(
+                        config, "bad-key", "https://openrouter.ai/api/v1"
+                    )
 
-                        result = router.query("Test query")
+                    result = router.query("Test query")
 
         assert result is None, "401 errors should return None, not crash"
 

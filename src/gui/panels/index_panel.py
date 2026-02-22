@@ -14,7 +14,7 @@ import time
 import logging
 from datetime import datetime
 
-from src.gui.theme import current_theme, FONT, FONT_BOLD
+from src.gui.theme import current_theme, FONT, FONT_BOLD, FONT_MONO, bind_hover
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ class IndexPanel(tk.LabelFrame):
 
     def __init__(self, parent, config, indexer=None):
         t = current_theme()
-        super().__init__(parent, text="Index Panel", padx=8, pady=8,
+        super().__init__(parent, text="Index Panel", padx=16, pady=16,
                          bg=t["panel_bg"], fg=t["accent"],
                          font=FONT_BOLD)
         self.config = config
@@ -40,7 +40,7 @@ class IndexPanel(tk.LabelFrame):
         """Build all child widgets with theme colors."""
         # -- Row 0: Source folder --
         row0 = tk.Frame(self, bg=t["panel_bg"])
-        row0.pack(fill=tk.X, pady=(0, 4))
+        row0.pack(fill=tk.X, pady=(0, 8))
 
         self.folder_label = tk.Label(row0, text="Source folder:",
                                      bg=t["panel_bg"], fg=t["fg"], font=FONT)
@@ -56,25 +56,28 @@ class IndexPanel(tk.LabelFrame):
             bg=t["input_bg"], fg=t["input_fg"], font=FONT,
             insertbackground=t["fg"], relief=tk.FLAT, bd=2,
         )
-        self.folder_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(8, 0))
+        self.folder_entry.pack(side=tk.LEFT, fill=tk.X, expand=True,
+                               padx=(8, 0), ipady=4)
 
         self.browse_btn = tk.Button(
             row0, text="Browse", command=self._on_browse, width=8,
             bg=t["accent"], fg=t["accent_fg"], font=FONT,
-            relief=tk.FLAT, bd=0, padx=6, pady=2,
+            relief=tk.FLAT, bd=0, padx=16, pady=8,
             activebackground=t["accent_hover"],
             activeforeground=t["accent_fg"],
         )
         self.browse_btn.pack(side=tk.LEFT, padx=(8, 0))
+        bind_hover(self.browse_btn, normal_bg=t["accent"])
 
         # -- Row 1: Controls --
         row1 = tk.Frame(self, bg=t["panel_bg"])
-        row1.pack(fill=tk.X, pady=(0, 4))
+        row1.pack(fill=tk.X, pady=(0, 8))
 
         self.start_btn = tk.Button(
             row1, text="Start Indexing", command=self._on_start, width=14,
-            bg=t["inactive_btn_bg"], fg=t["inactive_btn_fg"], font=FONT,
-            relief=tk.FLAT, bd=0, padx=6, pady=2, state=tk.DISABLED,
+            bg=t["inactive_btn_bg"], fg=t["inactive_btn_fg"],
+            font=FONT_BOLD, relief=tk.FLAT, bd=0,
+            padx=24, pady=8, state=tk.DISABLED,
             activebackground=t["accent_hover"],
             activeforeground=t["accent_fg"],
         )
@@ -84,7 +87,7 @@ class IndexPanel(tk.LabelFrame):
             row1, text="Stop", command=self._on_stop, width=8,
             state=tk.DISABLED,
             bg=t["inactive_btn_bg"], fg=t["inactive_btn_fg"], font=FONT,
-            relief=tk.FLAT, bd=0, padx=6, pady=2,
+            relief=tk.FLAT, bd=0, padx=12, pady=8,
         )
         self.stop_btn.pack(side=tk.LEFT, padx=(8, 0))
 
@@ -92,11 +95,12 @@ class IndexPanel(tk.LabelFrame):
             row1, text="", anchor=tk.W, fg=t["gray"],
             bg=t["panel_bg"], font=FONT,
         )
-        self.progress_file_label.pack(side=tk.LEFT, padx=(16, 0), fill=tk.X, expand=True)
+        self.progress_file_label.pack(side=tk.LEFT, padx=(16, 0),
+                                      fill=tk.X, expand=True)
 
         # -- Row 2: Progress bar --
         row2 = tk.Frame(self, bg=t["panel_bg"])
-        row2.pack(fill=tk.X, pady=(0, 4))
+        row2.pack(fill=tk.X, pady=(0, 8))
 
         self.progress_bar = ttk.Progressbar(
             row2, mode="determinate", length=400,
@@ -105,7 +109,7 @@ class IndexPanel(tk.LabelFrame):
 
         self.progress_count_label = tk.Label(
             row2, text="0 / 0 files", anchor=tk.W, padx=8,
-            bg=t["panel_bg"], fg=t["fg"], font=FONT,
+            bg=t["panel_bg"], fg=t["fg"], font=FONT_MONO,
         )
         self.progress_count_label.pack(side=tk.LEFT)
 
@@ -317,6 +321,17 @@ class _GUIProgressCallback:
     def on_indexing_complete(self, total_chunks, elapsed_seconds):
         """Called when indexing finishes."""
         pass  # Handled by _on_indexing_done in the panel
+
+    def on_discovery_progress(self, files_found):
+        """Called periodically during folder discovery (before indexing starts)."""
+        self.panel.after(0, self._update_discovery, files_found)
+
+    def _update_discovery(self, files_found):
+        t = current_theme()
+        self.panel.progress_file_label.config(
+            text="Scanning folder... {:,} files found".format(files_found),
+            fg=t["gray"],
+        )
 
     def on_error(self, file_path, error):
         """Called when a file has an error (continues to next file)."""

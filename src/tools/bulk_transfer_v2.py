@@ -212,6 +212,10 @@ class TransferStats:
         # Rolling speed window: list of (timestamp, bytes) samples
         self._speed_samples: List[Tuple[float, int]] = []
 
+        # Phase 1 discovery counters (updated from walk thread)
+        self.current_source_root: str = ""
+        self.dirs_walked: int = 0
+
     def record_copy(self, file_size: int, ext: str) -> None:
         """Record a successful file copy (called from worker threads)."""
         with self._lock:
@@ -261,6 +265,17 @@ class TransferStats:
                 self.files_skipped_hidden + self.files_skipped_inaccessible +
                 self.files_skipped_long_path + self.files_failed +
                 self.files_quarantined
+            )
+
+    def discovery_line(self) -> str:
+        """One-line progress during Phase 1 source discovery."""
+        with self._lock:
+            root = self.current_source_root
+            if len(root) > 50:
+                root = "..." + root[-47:]
+            return (
+                f"Scanning... {self.files_discovered:,} files found, "
+                f"{self.dirs_walked:,} dirs | {root}"
             )
 
     def summary_line(self) -> str:
@@ -509,12 +524,23 @@ class BulkTransferV2:
         cfg = self.config
         queue: List[Tuple[str, str, str, int]] = []
 
+        # Start live discovery counter
+        self._stop.clear()
+        t = threading.Thread(target=self._discovery_progress_loop, daemon=True)
+        t.start()
+
         for source_root in cfg.source_paths:
             root = Path(source_root)
             if not root.exists():
-                print(f"  [WARN] Not accessible: {source_root}")
+                self._log(f"  [WARN] Not accessible: {source_root}")
                 continue
+            self.stats.current_source_root = str(root)
             self._walk_source(root, str(root), queue)
+
+        # Stop discovery progress thread; clear for Phase 2 reuse
+        self._stop.set()
+        t.join(timeout=5.0)
+        self._stop.clear()
 
         return queue
 
@@ -539,13 +565,26 @@ class BulkTransferV2:
         """
         cfg = self.config
         excl = {d.lower() for d in cfg.excluded_dirs}
+        walk_warnings = 0
 
-        for dirpath, dirnames, filenames in os.walk(str(root)):
+        def _on_walk_error(err: OSError) -> None:
+            nonlocal walk_warnings
+            walk_warnings += 1
+
+        for dirpath, dirnames, filenames in os.walk(
+            str(root), onerror=_on_walk_error
+        ):
+            self.stats.dirs_walked += 1
+
             # --- Symlink loop guard ---
             # os.path.realpath() resolves all symlinks/junctions to
             # get the "true" filesystem path. If we've seen this
             # true path before, we're in a loop.
-            real = os.path.realpath(dirpath)
+            try:
+                real = os.path.realpath(dirpath)
+            except OSError:
+                dirnames.clear()
+                continue
             if real in self._visited_dirs:
                 self.manifest.record_skip(
                     self.run_id, dirpath, reason="symlink_loop",
@@ -565,7 +604,13 @@ class BulkTransferV2:
             for filename in filenames:
                 full = os.path.join(dirpath, filename)
                 self.stats.files_discovered += 1
-                self._process_discovery(full, source_root, queue)
+                try:
+                    self._process_discovery(full, source_root, queue)
+                except OSError:
+                    self.stats.files_skipped_inaccessible += 1
+
+        if walk_warnings:
+            self._log(f"  [WARN] {walk_warnings} directory read errors during walk")
 
     def _process_discovery(
         self, full: str, source_root: str,
@@ -596,10 +641,11 @@ class BulkTransferV2:
 
         # --- Step 1: Read file attributes ---
         # os.stat() retrieves file metadata without reading the file
-        # contents. If it fails, the file is inaccessible.
+        # contents. If it fails or hangs (VPN drop), the file is
+        # inaccessible.
         try:
-            st = os.stat(full)
-        except (OSError, PermissionError) as e:
+            st = _stat_with_timeout(full)
+        except (OSError, PermissionError, TimeoutError) as e:
             self.stats.files_skipped_inaccessible += 1
             self.manifest.record_skip(
                 self.run_id, full, extension=ext,
@@ -976,7 +1022,7 @@ class BulkTransferV2:
 
             # Step 8: Preserve original timestamps
             try:
-                orig_st = os.stat(source)
+                orig_st = _stat_with_timeout(source)
                 os.utime(str(final), (orig_st.st_atime, orig_st.st_mtime))
             except Exception:
                 pass  # Non-critical: timestamps are nice-to-have
@@ -1012,6 +1058,18 @@ class BulkTransferV2:
     # Progress Display
     # ------------------------------------------------------------------
 
+    def _log(self, msg: str) -> None:
+        """Thread-safe print that avoids garbling carriage-return lines."""
+        with self._log_lock:
+            print(f"\n{msg}", flush=True)
+
+    def _discovery_progress_loop(self) -> None:
+        """Print live discovery count every 2 seconds during Phase 1."""
+        while not self._stop.is_set():
+            print(f"\r  {self.stats.discovery_line()}", end="", flush=True)
+            self._stop.wait(timeout=2.0)
+        print()  # Final newline after progress line
+
     def _progress_loop(self) -> None:
         """Print live progress every 2 seconds until transfer completes."""
         while not self._stop.is_set():
@@ -1024,7 +1082,33 @@ class BulkTransferV2:
 # Utility Functions (module-level, not in any class)
 # ============================================================================
 
-def _hash_file(path: str) -> str:
+def _stat_with_timeout(path: str, timeout: float = 10.0) -> os.stat_result:
+    """
+    Run os.stat() in a daemon thread with a timeout.
+
+    Raises TimeoutError if stat hangs (e.g., VPN disconnect on SMB path).
+    Raises OSError/PermissionError if stat fails normally.
+    """
+    result = [None]
+    error = [None]
+
+    def _do_stat():
+        try:
+            result[0] = os.stat(path)
+        except Exception as e:
+            error[0] = e
+
+    t = threading.Thread(target=_do_stat, daemon=True)
+    t.start()
+    t.join(timeout=timeout)
+    if t.is_alive():
+        raise TimeoutError(f"os.stat() timed out after {timeout}s: {path}")
+    if error[0] is not None:
+        raise error[0]
+    return result[0]
+
+
+def _hash_file(path: str, timeout: float = 120.0) -> str:
     """
     Compute SHA-256 hash of a file's contents.
 
@@ -1034,11 +1118,14 @@ def _hash_file(path: str) -> str:
       match is 1 in 2^256, which is effectively impossible).
 
       We read the file in 128 KB chunks to avoid loading multi-GB
-      files entirely into memory.
+      files entirely into memory. If reading takes longer than
+      timeout seconds (default 120s), returns empty string to avoid
+      hanging on stalled network reads.
 
     Returns empty string if the file cannot be read.
     """
     h = hashlib.sha256()
+    t0 = time.monotonic()
     try:
         with open(path, "rb") as f:
             while True:
@@ -1046,12 +1133,14 @@ def _hash_file(path: str) -> str:
                 if not chunk:
                     break
                 h.update(chunk)
+                if time.monotonic() - t0 > timeout:
+                    return ""
     except (OSError, PermissionError):
         return ""
     return h.hexdigest()
 
 
-def _can_read_file(path: str) -> bool:
+def _can_read_file(path: str, timeout: float = 5.0) -> bool:
     """
     Test if a file can be opened for reading (not locked).
 
@@ -1059,15 +1148,23 @@ def _can_read_file(path: str) -> bool:
       Some files are "locked" by the program using them. For example,
       Outlook locks .pst files, and Word locks .docx files while
       they're open. We test by trying to read 1 byte. If even that
-      fails, the file is locked and we should skip it rather than
-      wait or copy a corrupt partial version.
+      fails (or hangs beyond timeout), the file is locked and we
+      should skip it rather than wait or copy a corrupt partial version.
     """
-    try:
-        with open(path, "rb") as f:
-            f.read(1)
-        return True
-    except (OSError, PermissionError):
-        return False
+    result = [False]
+
+    def _try_read():
+        try:
+            with open(path, "rb") as f:
+                f.read(1)
+            result[0] = True
+        except (OSError, PermissionError):
+            pass
+
+    t = threading.Thread(target=_try_read, daemon=True)
+    t.start()
+    t.join(timeout=timeout)
+    return result[0]
 
 
 def _buffered_copy(

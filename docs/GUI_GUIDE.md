@@ -18,7 +18,7 @@ with one click.
 4. [Query Panel](#4-query-panel)
 5. [Index Panel](#5-index-panel)
 6. [Status Bar](#6-status-bar)
-7. [Engineering Menu](#7-engineering-menu)
+7. [Admin Menu](#7-engineering-menu)
 8. [Menu Bar](#8-menu-bar)
 9. [Dark Mode and Light Mode](#9-dark-mode-and-light-mode)
 10. [How to Run Your First Query](#10-how-to-run-your-first-query)
@@ -422,9 +422,9 @@ warning dialog.
 
 ---
 
-## 7. Engineering Menu
+## 7. Admin Menu
 
-Open it from the menu bar: **Engineering > Engineering Settings...**
+Open it from the menu bar: **Engineering > Admin Settings...**
 
 This opens a separate child window with four sections and two buttons at
 the bottom. Changes take effect immediately -- there is no "Apply" or
@@ -582,9 +582,9 @@ Closes the engineering menu window. Your changes are already applied.
 - **Exit** -- Closes the application. The status bar timer is stopped
   cleanly.
 
-### Engineering
+### Admin
 
-- **Engineering Settings...** -- Opens the engineering menu described in
+- **Admin Settings...** -- Opens the engineering menu described in
   section 7.
 
 ### Help
@@ -673,7 +673,7 @@ When you click the Theme button:
    rebuild, no flicker.
 3. The menu bar is rebuilt with new background and text colors.
 4. The ttk styles (used by comboboxes, progress bars) are reapplied.
-5. If the Engineering Menu window is open, it updates too.
+5. If the Admin Menu window is open, it updates too.
 6. The Theme button label flips: "Light" becomes "Dark" and vice versa.
 
 The theme preference is not persisted to disk. On next launch, the GUI
@@ -820,7 +820,7 @@ The GUI responds to the following keyboard shortcuts.
 | **Tab** | Move focus to the next widget (standard Windows navigation) |
 | **Shift+Tab** | Move focus to the previous widget |
 | **Alt+F4** | Close the application |
-| **Escape** | Close the Engineering Menu window (if open) |
+| **Escape** | Close the Admin Menu window (if open) |
 
 ### Query Panel shortcuts
 
@@ -830,16 +830,16 @@ The GUI responds to the following keyboard shortcuts.
 | **Ctrl+C** (in answer area) | Copy selected text |
 | **Ctrl+A** (in answer area) | Select all answer text |
 
-### Engineering Menu shortcuts
+### Admin Menu shortcuts
 
 | Shortcut | Action |
 |----------|--------|
-| **Escape** | Close the Engineering Menu window |
+| **Escape** | Close the Admin Menu window |
 | **Tab / Shift+Tab** | Navigate between sliders and controls |
 
-**Note:** There is no global hotkey to open the Engineering Menu from the
+**Note:** There is no global hotkey to open the Admin Menu from the
 keyboard. Use the menu bar: **Alt** to activate the menu bar, then arrow
-keys to navigate to **Engineering > Engineering Settings...** and press
+keys to navigate to **Engineering > Admin Settings...** and press
 **Enter**.
 
 ---
@@ -905,7 +905,7 @@ reconfiguration messages.
 | 401 / Unauthorized    | API key is invalid or expired         | Re-run `rag-store-key` with a valid key |
 | 404 / NotFound        | Wrong endpoint URL or deployment name | Check endpoint with `rag-cred-status`   |
 | 429 / RateLimit       | Too many API requests                 | Wait 30-60 seconds and try again        |
-| Timeout               | LLM took too long to respond          | Raise timeout in Engineering menu        |
+| Timeout               | LLM took too long to respond          | Raise timeout in Admin menu        |
 | Connection            | Network issue                         | Check VPN/internet, verify endpoint      |
 | SSL / certificate     | Corporate proxy blocking HTTPS        | Install `pip-system-certs`               |
 | NetworkBlockedError   | Gate blocked the request              | Check mode -- are you in offline mode?   |
@@ -918,7 +918,7 @@ hardware.
 
 **Fix:** This is normal. The progress bar and file label show that the
 system is still working. If you need faster indexing:
-- Switch to `desktop_power` or `server_max` profile (Engineering menu).
+- Switch to `desktop_power` or `server_max` profile (Admin menu).
 - Use a machine with a GPU (CUDA) -- set `embedding.device: cuda` in config.
 - Run indexing overnight.
 
@@ -926,14 +926,14 @@ system is still working. If you need faster indexing:
 
 **What happened:** The embedding batch size is too large for your RAM.
 
-**Fix:** Open Engineering menu, switch profile to `laptop_safe`. This
+**Fix:** Open Admin menu, switch profile to `laptop_safe`. This
 reduces batch size from 64/128 to 16 and processes one file at a time.
 
 ### Answer seems wrong or cites irrelevant sources
 
 **Possible causes and fixes:**
 
-1. **min_score too low.** Irrelevant chunks sneak in. Open Engineering menu
+1. **min_score too low.** Irrelevant chunks sneak in. Open Admin menu
    and raise min_score from 0.10 to 0.25 or 0.30.
 
 2. **top_k too high.** Too many chunks dilute the good results. Lower top_k

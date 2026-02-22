@@ -102,23 +102,36 @@ class Embedder:
       2. Querying: embed_query() processes a single user question
     """
 
-    def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
+    # Default used only when no config is available (tests, scripts).
+    # Production code should always pass model_name from config.
+    DEFAULT_MODEL = "all-MiniLM-L6-v2"
+
+    def __init__(self, model_name: str | None = None):
         """
         Load the embedding model from local cache.
 
         Parameters
         ----------
-        model_name : str
-            Name of the sentence-transformers model. Must be pre-cached
-            in .model_cache/ -- the model will NOT be downloaded from the
-            internet because HF_HUB_OFFLINE=1 is enforced above.
+        model_name : str or None
+            Name of the sentence-transformers model.  When None, falls
+            back to DEFAULT_MODEL.  Must be pre-cached -- the model
+            will NOT be downloaded from the internet because
+            HF_HUB_OFFLINE=1 is enforced above.
+
+            Set via config/default_config.yaml -> embedding.model_name.
         """
-        self.model_name = model_name
-        self.model = SentenceTransformer(model_name)
+        self.model_name = model_name or self.DEFAULT_MODEL
+
+        # trust_remote_code=True is safe here because HF_HUB_OFFLINE=1
+        # prevents downloading new code -- only pre-cached code runs.
+        # Required by models like nomic-embed-text that ship custom
+        # architecture code alongside their weights.
+        self.model = SentenceTransformer(
+            self.model_name, trust_remote_code=True,
+        )
 
         # Read the dimension from the model itself (not hardcoded).
-        # For all-MiniLM-L6-v2 this is 384, but if someone swaps in a
-        # different model, this will automatically be correct.
+        # all-MiniLM-L6-v2 = 384, nomic-embed-text = 768, etc.
         self.dimension = self.model.get_sentence_embedding_dimension()
 
     def embed_batch(self, texts: list[str]) -> np.ndarray:

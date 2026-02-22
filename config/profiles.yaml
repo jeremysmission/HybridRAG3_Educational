@@ -1,5 +1,5 @@
 # ============================================================================
-# HybridRAG v3 — Performance Profiles
+# HybridRAG v3 -- Performance Profiles
 # ============================================================================
 # Location: config/profiles.yaml
 #
@@ -17,13 +17,20 @@
 #   3. Or switch via the GUI engineering menu (future feature)
 #
 # PROFILE SELECTION CRITERIA:
-#   laptop_safe   — RAM ≤ 16GB (any CPU)
-#   desktop_power — RAM 32-64GB, 8+ cores
-#   server_max    — RAM 64GB+, 16+ cores
+#   laptop_safe   -- RAM 8-16GB (any CPU, no GPU)
+#   desktop_power -- RAM 32-64GB, 12GB+ VRAM GPU
+#   server_max    -- RAM 64GB+, 24GB+ VRAM GPU
 #
-# The main bottleneck for RAG is RAM, not CPU. The embedding model uses
-# ~100MB, but working set (chunks + embeddings in memory) grows with
-# batch size. Larger batches = faster indexing but more RAM.
+# WHAT EACH PROFILE CONTROLS:
+#   - Embedding model (MiniLM 384d / nomic 768d / snowflake 1024d)
+#   - Embedding device (cpu / cuda)
+#   - LLM model (phi4-mini / mistral-nemo:12b / phi4:14b-q4_K_M)
+#   - Batch size, top_k, block_chars, concurrency
+#
+# IMPORTANT:
+#   Switching to a profile with a DIFFERENT embedding model requires a
+#   FULL RE-INDEX. Existing vectors are incompatible across dimensions.
+#   _profile_switch.py will warn you when this happens.
 # ============================================================================
 
 # --- LAPTOP SAFE ---
@@ -32,74 +39,89 @@
 # Batch size 16 keeps peak RAM under 2GB during indexing.
 laptop_safe:
   embedding:
+    model_name: "all-MiniLM-L6-v2"  # 80MB, 384 dims, runs on any hardware
+    dimension: 384
     batch_size: 16               # Small batches = low RAM, slower indexing
     device: "cpu"                # No GPU assumed
+  ollama:
+    model: "phi4-mini"           # 3.8B, 2.3GB download, fits 8GB RAM
+    context_window: 8192         # Conservative context for low RAM
   chunking:
-    chunk_size: 1200             # Standard chunk size
-    overlap: 200                 # Standard overlap
+    chunk_size: 1200
+    overlap: 200
   retrieval:
     top_k: 5                    # Fewer results = faster query
-    reranker_top_n: 20          # Fewer candidates to rerank
+    reranker_top_n: 20
   indexing:
     block_chars: 200000          # 200K chars per block (RAM-safe)
-    max_chars_per_file: 2000000  # 2M char limit per file
+    max_chars_per_file: 2000000
   performance:
-    max_concurrent_files: 1      # Process one file at a time
-    gc_between_files: true       # Force garbage collection between files
-    gc_between_blocks: true      # Force GC between blocks within a file
+    max_concurrent_files: 1
+    gc_between_files: true
+    gc_between_blocks: true
   notes: >
     Conservative settings for laptops with 8-16GB RAM.
-    Indexing is slower but rock-solid stable. No risk of
-    memory pressure causing Windows to swap or crash.
+    Embedding: MiniLM (384d, CPU). LLM: phi4-mini (3.8B).
+    Indexing is slower but rock-solid stable.
 
 # --- DESKTOP POWER ---
-# For: Engineering workstations, gaming PCs, 32-64GB machines
-# Priority: Throughput. Larger batches, less GC overhead.
+# For: New work laptop (64GB RAM, 12GB VRAM), gaming PCs
+# Priority: Throughput. Better models, GPU acceleration.
 # Batch size 64 uses ~4GB peak RAM during indexing.
 desktop_power:
   embedding:
+    model_name: "nomic-ai/nomic-embed-text-v1.5"  # 0.5GB, 768 dims, better quality
+    dimension: 768
     batch_size: 64               # 4x laptop = 4x faster embedding
-    device: "cpu"                # Change to "cuda" if GPU available
+    device: "cuda"               # 12GB VRAM handles nomic easily
+  ollama:
+    model: "mistral-nemo:12b"    # 12B, 7.1GB, 128K ctx, Apache 2.0
+    context_window: 16384        # More context = better answers
   chunking:
     chunk_size: 1200
     overlap: 200
   retrieval:
     top_k: 10                   # More results = better recall
-    reranker_top_n: 40          # More candidates = better precision
+    reranker_top_n: 40
   indexing:
     block_chars: 500000          # 500K chars per block
-    max_chars_per_file: 5000000  # 5M char limit
+    max_chars_per_file: 5000000
   performance:
-    max_concurrent_files: 2      # Process 2 files in parallel (future)
-    gc_between_files: false      # Skip GC — plenty of RAM
+    max_concurrent_files: 2
+    gc_between_files: false
     gc_between_blocks: false
   notes: >
-    Aggressive settings for desktops with 32-64GB RAM.
-    4x faster embedding than laptop_safe. Suitable for
-    overnight indexing of large corpora (10GB+).
+    Aggressive settings for 64GB RAM / 12GB VRAM machines.
+    Embedding: nomic (768d, CUDA). LLM: mistral-nemo:12b (128K ctx).
+    4x faster embedding than laptop_safe.
 
 # --- SERVER MAX ---
-# For: Rack servers, cloud instances, 64GB+ workstations
-# Priority: Maximum throughput. Use all available resources.
+# For: Rack servers, cloud instances, dual-GPU workstations
+# Priority: Maximum throughput. Best models, maximum resources.
 # Batch size 128 uses ~8GB peak RAM during indexing.
 server_max:
   embedding:
+    model_name: "snowflake-arctic-embed-l-v2.0"   # 1.1GB, 1024 dims, best quality
+    dimension: 1024
     batch_size: 128              # 8x laptop = maximum throughput
-    device: "cpu"                # Change to "cuda" for GPU
+    device: "cuda"               # 24GB+ VRAM for large embedder
+  ollama:
+    model: "phi4:14b-q4_K_M"    # 14B, 9.1GB, MIT, strongest reasoning
+    context_window: 16384
   chunking:
     chunk_size: 1200
     overlap: 200
   retrieval:
     top_k: 15                   # Maximum recall
-    reranker_top_n: 60          # Maximum precision
+    reranker_top_n: 60
   indexing:
     block_chars: 1000000         # 1M chars per block
-    max_chars_per_file: 10000000 # 10M char limit
+    max_chars_per_file: 10000000
   performance:
-    max_concurrent_files: 4      # Process 4 files in parallel (future)
+    max_concurrent_files: 4
     gc_between_files: false
     gc_between_blocks: false
   notes: >
     Maximum settings for servers or high-end workstations.
-    8x faster than laptop_safe. Requires 64GB+ RAM.
-    Suitable for indexing entire document libraries (100GB+).
+    Embedding: snowflake-arctic (1024d, CUDA). LLM: phi4:14b (14B).
+    8x faster than laptop_safe. Requires 64GB+ RAM, 24GB+ VRAM.

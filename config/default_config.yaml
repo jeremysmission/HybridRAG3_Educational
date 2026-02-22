@@ -51,7 +51,7 @@ retrieval:
   reranker_model: cross-encoder/ms-marco-MiniLM-L-6-v2
   reranker_top_n: 20
   rrf_k: 60
-  top_k: 12
+  top_k: 5
 security:
   audit_logging: true
   pii_sanitization: true

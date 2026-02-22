@@ -46,43 +46,43 @@ class StatusBar(tk.Frame):
         # -- Loading indicator (left-most) --
         self.loading_label = tk.Label(
             self, text="Loading...", anchor=tk.W,
-            padx=8, pady=2, bg=t["panel_bg"], fg=t["orange"], font=FONT,
+            padx=8, pady=4, bg=t["panel_bg"], fg=t["orange"], font=FONT,
         )
         self.loading_label.pack(side=tk.LEFT)
 
         self.sep_loading = tk.Frame(self, width=1, bg=t["separator"])
-        self.sep_loading.pack(side=tk.LEFT, fill=tk.Y, padx=4, pady=2)
+        self.sep_loading.pack(side=tk.LEFT, fill=tk.Y, padx=8, pady=4)
 
         # -- LLM indicator --
         self.llm_label = tk.Label(
             self, text="LLM: Not configured", anchor=tk.W,
-            padx=8, pady=2, bg=t["panel_bg"], fg=t["fg"], font=FONT,
+            padx=8, pady=4, bg=t["panel_bg"], fg=t["fg"], font=FONT,
         )
         self.llm_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
         # -- Separator --
         self.sep1 = tk.Frame(self, width=1, bg=t["separator"])
-        self.sep1.pack(side=tk.LEFT, fill=tk.Y, padx=4, pady=2)
+        self.sep1.pack(side=tk.LEFT, fill=tk.Y, padx=8, pady=4)
 
         # -- Ollama indicator --
         self.ollama_label = tk.Label(
             self, text="Ollama: Unknown", anchor=tk.W,
-            padx=8, pady=2, bg=t["panel_bg"], fg=t["fg"], font=FONT,
+            padx=8, pady=4, bg=t["panel_bg"], fg=t["fg"], font=FONT,
         )
         self.ollama_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
         # -- Separator --
         self.sep2 = tk.Frame(self, width=1, bg=t["separator"])
-        self.sep2.pack(side=tk.LEFT, fill=tk.Y, padx=4, pady=2)
+        self.sep2.pack(side=tk.LEFT, fill=tk.Y, padx=8, pady=4)
 
         # -- Gate indicator (clickable) --
-        self.gate_dot = tk.Label(self, text=" ", width=2, padx=2,
+        self.gate_dot = tk.Label(self, text=" ", width=2, padx=4,
                                  bg=t["panel_bg"])
-        self.gate_dot.pack(side=tk.LEFT, padx=(8, 2))
+        self.gate_dot.pack(side=tk.LEFT, padx=(8, 4))
 
         self.gate_label = tk.Label(
             self, text="Gate: OFFLINE", anchor=tk.W,
-            padx=2, pady=2, cursor="hand2",
+            padx=4, pady=4, cursor="hand2",
             bg=t["panel_bg"], fg=t["gray"], font=FONT,
         )
         self.gate_label.pack(side=tk.LEFT, padx=(0, 8))

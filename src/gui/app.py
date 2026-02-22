@@ -34,7 +34,7 @@ from src.gui.panels.status_bar import StatusBar
 from src.gui.panels.engineering_menu import EngineeringMenu
 from src.gui.theme import (
     DARK, LIGHT, FONT, FONT_BOLD, FONT_TITLE,
-    current_theme, set_theme, apply_ttk_styles,
+    current_theme, set_theme, apply_ttk_styles, bind_hover,
 )
 
 logger = logging.getLogger(__name__)
@@ -53,8 +53,8 @@ class HybridRAGApp(tk.Tk):
         super().__init__()
 
         self.title("HybridRAG v3")
-        self.geometry("780x720")
-        self.minsize(640, 500)
+        self.geometry("840x780")
+        self.minsize(700, 560)
 
         # Store backend references
         self.boot_result = boot_result
@@ -88,7 +88,7 @@ class HybridRAGApp(tk.Tk):
     # ----------------------------------------------------------------
 
     def _build_menu_bar(self):
-        """Build File | Engineering | Help menu bar."""
+        """Build File | Admin | Help menu bar."""
         t = self._theme
         menubar = tk.Menu(self, bg=t["menu_bg"], fg=t["menu_fg"],
                           activebackground=t["accent"],
@@ -103,16 +103,16 @@ class HybridRAGApp(tk.Tk):
         file_menu.add_command(label="Exit", command=self._on_close)
         menubar.add_cascade(label="File", menu=file_menu)
 
-        # Engineering menu
-        eng_menu = tk.Menu(menubar, tearoff=0,
-                           bg=t["menu_bg"], fg=t["menu_fg"],
-                           activebackground=t["accent"],
-                           activeforeground=t["accent_fg"], font=FONT)
-        eng_menu.add_command(
-            label="Engineering Settings...",
+        # Admin menu
+        admin_menu = tk.Menu(menubar, tearoff=0,
+                             bg=t["menu_bg"], fg=t["menu_fg"],
+                             activebackground=t["accent"],
+                             activeforeground=t["accent_fg"], font=FONT)
+        admin_menu.add_command(
+            label="Admin Settings...",
             command=self._open_engineering_menu,
         )
-        menubar.add_cascade(label="Engineering", menu=eng_menu)
+        menubar.add_cascade(label="Admin", menu=admin_menu)
 
         # Help menu
         help_menu = tk.Menu(menubar, tearoff=0,
@@ -132,7 +132,7 @@ class HybridRAGApp(tk.Tk):
     def _build_title_bar(self):
         """Build title bar with OFFLINE/ONLINE toggle and theme toggle."""
         t = self._theme
-        self.title_frame = tk.Frame(self, bg=t["panel_bg"], padx=8, pady=6)
+        self.title_frame = tk.Frame(self, bg=t["panel_bg"], padx=16, pady=8)
         self.title_frame.pack(fill=tk.X)
 
         self.title_label = tk.Label(
@@ -146,32 +146,33 @@ class HybridRAGApp(tk.Tk):
             self.title_frame, text="Mode:", bg=t["panel_bg"], fg=t["label_fg"],
             font=FONT,
         )
-        self.mode_label.pack(side=tk.LEFT, padx=(20, 4))
+        self.mode_label.pack(side=tk.LEFT, padx=(24, 8))
 
         # OFFLINE button
         self.offline_btn = tk.Button(
             self.title_frame, text="OFFLINE", width=10, font=FONT,
             command=lambda: self.toggle_mode("offline"),
-            relief=tk.FLAT, bd=0, padx=6, pady=2,
+            relief=tk.FLAT, bd=0, padx=12, pady=4,
         )
-        self.offline_btn.pack(side=tk.LEFT, padx=2)
+        self.offline_btn.pack(side=tk.LEFT, padx=4)
 
         # ONLINE button
         self.online_btn = tk.Button(
             self.title_frame, text="ONLINE", width=10, font=FONT,
             command=lambda: self.toggle_mode("online"),
-            relief=tk.FLAT, bd=0, padx=6, pady=2,
+            relief=tk.FLAT, bd=0, padx=12, pady=4,
         )
-        self.online_btn.pack(side=tk.LEFT, padx=2)
+        self.online_btn.pack(side=tk.LEFT, padx=4)
 
         # -- Theme toggle (right side) --
         self.theme_btn = tk.Button(
             self.title_frame, text="Light", width=6, font=FONT,
             command=self._toggle_theme,
-            relief=tk.FLAT, bd=0, padx=6, pady=2,
+            relief=tk.FLAT, bd=0, padx=12, pady=4,
             bg=t["input_bg"], fg=t["fg"],
         )
         self.theme_btn.pack(side=tk.RIGHT, padx=4)
+        bind_hover(self.theme_btn)
 
         self.theme_icon_label = tk.Label(
             self.title_frame, text="Theme:", bg=t["panel_bg"],
@@ -183,10 +184,11 @@ class HybridRAGApp(tk.Tk):
         self.reset_btn = tk.Button(
             self.title_frame, text="Reset", width=6, font=FONT,
             command=self.reset_backends,
-            relief=tk.FLAT, bd=0, padx=6, pady=2,
+            relief=tk.FLAT, bd=0, padx=12, pady=4,
             bg=t["input_bg"], fg=t["fg"],
         )
         self.reset_btn.pack(side=tk.RIGHT, padx=(0, 8))
+        bind_hover(self.reset_btn)
 
         # Set initial button colors
         self._update_mode_buttons()
@@ -264,14 +266,14 @@ class HybridRAGApp(tk.Tk):
         self.query_panel = QueryPanel(
             self, config=self.config, query_engine=self.query_engine,
         )
-        self.query_panel.pack(fill=tk.BOTH, expand=True, padx=8, pady=(4, 2))
+        self.query_panel.pack(fill=tk.BOTH, expand=True, padx=16, pady=(8, 4))
 
     def _build_index_panel(self):
         """Build and pack the index panel."""
         self.index_panel = IndexPanel(
             self, config=self.config, indexer=self.indexer,
         )
-        self.index_panel.pack(fill=tk.X, padx=8, pady=2)
+        self.index_panel.pack(fill=tk.X, padx=16, pady=4)
 
     def _build_status_bar(self):
         """Build and pack the status bar."""
@@ -348,6 +350,8 @@ class HybridRAGApp(tk.Tk):
 
         self._update_mode_buttons()
         self.status_bar.force_refresh()
+        if hasattr(self, "query_panel"):
+            self.query_panel._on_use_case_change()
         logger.info("Switched to ONLINE mode")
 
     def _switch_to_offline(self):
@@ -364,6 +368,8 @@ class HybridRAGApp(tk.Tk):
 
         self._update_mode_buttons()
         self.status_bar.force_refresh()
+        if hasattr(self, "query_panel"):
+            self.query_panel._on_use_case_change()
         logger.info("Switched to OFFLINE mode")
 
     # ----------------------------------------------------------------
@@ -416,6 +422,33 @@ class HybridRAGApp(tk.Tk):
                 self.status_bar.set_ready()
             else:
                 self.status_bar.set_loading_stage("Loading...")
+
+    # ----------------------------------------------------------------
+    # CONFIG RELOAD (for profile switching)
+    # ----------------------------------------------------------------
+
+    def reload_config(self, new_config):
+        """Replace the running config and propagate to all panels.
+
+        Called after a profile switch rewrites default_config.yaml.
+        The new Config is loaded from disk by the caller; this method
+        just stores it and pushes the reference to every component.
+        """
+        self.config = new_config
+
+        if hasattr(self, "query_panel"):
+            self.query_panel.config = new_config
+            self.query_panel._on_use_case_change()
+
+        if hasattr(self, "index_panel"):
+            self.index_panel.config = new_config
+
+        if hasattr(self, "status_bar"):
+            self.status_bar.config = new_config
+            self.status_bar.force_refresh()
+
+        self._update_mode_buttons()
+        logger.info("Config reloaded and propagated to all panels")
 
     # ----------------------------------------------------------------
     # ENGINEERING MENU
