@@ -92,8 +92,8 @@ class QueryPanel(tk.LabelFrame):
 
         self.ask_btn = tk.Button(
             row2, text="Ask", command=self._on_ask, width=8,
-            bg=t["accent"], fg=t["accent_fg"], font=FONT,
-            relief=tk.FLAT, bd=0, padx=6, pady=2,
+            bg=t["inactive_btn_bg"], fg=t["inactive_btn_fg"], font=FONT,
+            relief=tk.FLAT, bd=0, padx=6, pady=2, state=tk.DISABLED,
             activebackground=t["accent_hover"],
             activeforeground=t["accent_fg"],
         )
@@ -144,8 +144,12 @@ class QueryPanel(tk.LabelFrame):
                         child.configure(bg=t["input_bg"], fg=t["input_fg"],
                                         insertbackground=t["fg"])
                     elif isinstance(child, tk.Button):
-                        child.configure(bg=t["accent"], fg=t["accent_fg"],
-                                        activebackground=t["accent_hover"])
+                        if str(child.cget("state")) == "disabled":
+                            child.configure(bg=t["inactive_btn_bg"],
+                                            fg=t["inactive_btn_fg"])
+                        else:
+                            child.configure(bg=t["accent"], fg=t["accent_fg"],
+                                            activebackground=t["accent_hover"])
 
         self.model_label.configure(fg=t["accent"], bg=t["panel_bg"])
         self.network_label.configure(bg=t["panel_bg"], fg=t["gray"])
@@ -280,6 +284,16 @@ class QueryPanel(tk.LabelFrame):
 
         self.sources_label.config(text="Sources: (none)", fg=t["gray"])
         self.metrics_label.config(text="")
+
+    def set_ready(self, enabled):
+        """Enable or disable the Ask button based on backend readiness."""
+        t = current_theme()
+        if enabled:
+            self.ask_btn.config(state=tk.NORMAL, bg=t["accent"],
+                                fg=t["accent_fg"])
+        else:
+            self.ask_btn.config(state=tk.DISABLED, bg=t["inactive_btn_bg"],
+                                fg=t["inactive_btn_fg"])
 
     def get_current_use_case_key(self):
         """Return the currently selected use case key."""

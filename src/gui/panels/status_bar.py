@@ -32,6 +32,9 @@ class StatusBar(tk.Frame):
         self.config = config
         self.router = router
         self._stop_event = threading.Event()
+        self._loading = True
+        self._loading_dots = 0
+        self._dot_timer_id = None
 
         self._build_widgets(t)
 
@@ -40,6 +43,16 @@ class StatusBar(tk.Frame):
 
     def _build_widgets(self, t):
         """Build all child widgets with theme colors."""
+        # -- Loading indicator (left-most) --
+        self.loading_label = tk.Label(
+            self, text="Loading...", anchor=tk.W,
+            padx=8, pady=2, bg=t["panel_bg"], fg=t["orange"], font=FONT,
+        )
+        self.loading_label.pack(side=tk.LEFT)
+
+        self.sep_loading = tk.Frame(self, width=1, bg=t["separator"])
+        self.sep_loading.pack(side=tk.LEFT, fill=tk.Y, padx=4, pady=2)
+
         # -- LLM indicator --
         self.llm_label = tk.Label(
             self, text="LLM: Not configured", anchor=tk.W,
@@ -78,6 +91,12 @@ class StatusBar(tk.Frame):
     def apply_theme(self, t):
         """Re-apply theme colors to all widgets."""
         self.configure(bg=t["panel_bg"])
+        self.loading_label.configure(bg=t["panel_bg"])
+        if self._loading:
+            self.loading_label.configure(fg=t["orange"])
+        else:
+            self.loading_label.configure(fg=t["green"])
+        self.sep_loading.configure(bg=t["separator"])
         self.llm_label.configure(bg=t["panel_bg"])
         self.ollama_label.configure(bg=t["panel_bg"])
         self.gate_label.configure(bg=t["panel_bg"])
@@ -153,8 +172,12 @@ class StatusBar(tk.Frame):
     def _update_no_router(self):
         """Display when no router is available."""
         t = current_theme()
-        self.llm_label.config(text="LLM: Not initialized", fg=t["fg"])
-        self.ollama_label.config(text="Ollama: Unknown", fg=t["gray"])
+        if self._loading:
+            self.llm_label.config(text="LLM: Loading...", fg=t["gray"])
+            self.ollama_label.config(text="Ollama: Loading...", fg=t["gray"])
+        else:
+            self.llm_label.config(text="LLM: Not initialized", fg=t["fg"])
+            self.ollama_label.config(text="Ollama: Unknown", fg=t["gray"])
 
     def _update_gate_display(self):
         """Update gate indicator from config mode."""
@@ -183,6 +206,39 @@ class StatusBar(tk.Frame):
                 return widget
             widget = getattr(widget, "master", None)
         return None
+
+    def set_loading_stage(self, stage_text):
+        """Update the loading indicator with the current stage."""
+        t = current_theme()
+        self._loading = True
+        self._loading_dots = 0
+        self.loading_label.config(text="Loading: {}".format(stage_text),
+                                  fg=t["orange"])
+        # Start dot animation if not already running
+        if self._dot_timer_id is None:
+            self._animate_dots()
+
+    def set_ready(self):
+        """Mark loading as complete -- show green Ready text."""
+        t = current_theme()
+        self._loading = False
+        # Cancel dot animation
+        if self._dot_timer_id is not None:
+            self.after_cancel(self._dot_timer_id)
+            self._dot_timer_id = None
+        self.loading_label.config(text="Ready", fg=t["green"])
+
+    def _animate_dots(self):
+        """Cycle dots (. -> .. -> ...) on the loading label."""
+        if not self._loading or self._stop_event.is_set():
+            self._dot_timer_id = None
+            return
+        self._loading_dots = (self._loading_dots % 3) + 1
+        current_text = self.loading_label.cget("text")
+        # Strip trailing dots and re-add
+        base = current_text.rstrip(".")
+        self.loading_label.config(text=base + "." * self._loading_dots)
+        self._dot_timer_id = self.after(500, self._animate_dots)
 
     def force_refresh(self):
         """Immediately refresh all indicators."""

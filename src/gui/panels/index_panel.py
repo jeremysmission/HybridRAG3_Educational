@@ -73,8 +73,8 @@ class IndexPanel(tk.LabelFrame):
 
         self.start_btn = tk.Button(
             row1, text="Start Indexing", command=self._on_start, width=14,
-            bg=t["accent"], fg=t["accent_fg"], font=FONT,
-            relief=tk.FLAT, bd=0, padx=6, pady=2,
+            bg=t["inactive_btn_bg"], fg=t["inactive_btn_fg"], font=FONT,
+            relief=tk.FLAT, bd=0, padx=6, pady=2, state=tk.DISABLED,
             activebackground=t["accent_hover"],
             activeforeground=t["accent_fg"],
         )
@@ -150,6 +150,16 @@ class IndexPanel(tk.LabelFrame):
         else:
             self.last_run_label.configure(fg=t["fg"])
         self.progress_count_label.configure(bg=t["panel_bg"], fg=t["fg"])
+
+    def set_ready(self, enabled):
+        """Enable or disable the Start Indexing button based on backend readiness."""
+        t = current_theme()
+        if enabled:
+            self.start_btn.config(state=tk.NORMAL, bg=t["accent"],
+                                  fg=t["accent_fg"])
+        else:
+            self.start_btn.config(state=tk.DISABLED, bg=t["inactive_btn_bg"],
+                                  fg=t["inactive_btn_fg"])
 
     def _on_browse(self):
         """Open folder picker dialog."""

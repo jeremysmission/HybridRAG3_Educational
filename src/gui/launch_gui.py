@@ -14,6 +14,7 @@ import os
 import sys
 import logging
 import threading
+from concurrent.futures import ThreadPoolExecutor
 
 # Ensure project root is on sys.path
 _project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -25,12 +26,25 @@ if not os.environ.get("HYBRIDRAG_PROJECT_ROOT"):
     os.environ["HYBRIDRAG_PROJECT_ROOT"] = _project_root
 
 
+def _set_stage(app, stage_text):
+    """Schedule a loading-stage update on the GUI main thread."""
+    try:
+        app.after(0, lambda: (
+            app.status_bar.set_loading_stage(stage_text)
+            if hasattr(app, "status_bar") else None
+        ))
+    except Exception:
+        pass
+
+
 def _load_backends(app, logger):
     """Load heavy backends in a background thread, then attach to the GUI."""
     config = app.config
     query_engine = None
     indexer = None
     router = None
+    store = None
+    embedder = None
 
     try:
         logger.info("Loading backends (this may take a moment)...")
@@ -41,40 +55,54 @@ def _load_backends(app, logger):
         from src.core.chunker import Chunker
         from src.core.indexer import Indexer
 
-        # Vector store
-        db_path = getattr(getattr(config, "paths", None), "database", "")
-        store = None
-        if db_path and os.path.exists(os.path.dirname(db_path) or "."):
-            store = VectorStore(
-                db_path=db_path,
-                embedding_dim=getattr(
-                    getattr(config, "embedding", None), "dimension", 384
-                ),
-            )
-            store.connect()
-            logger.info("[OK] Vector store connected")
-        else:
+        # -- Parallel phase: VectorStore, Embedder, LLMRouter --
+        def _init_store():
+            _set_stage(app, "VectorStore...")
+            db_path = getattr(getattr(config, "paths", None), "database", "")
+            if db_path and os.path.exists(os.path.dirname(db_path) or "."):
+                s = VectorStore(
+                    db_path=db_path,
+                    embedding_dim=getattr(
+                        getattr(config, "embedding", None), "dimension", 384
+                    ),
+                )
+                s.connect()
+                logger.info("[OK] Vector store connected")
+                return s
             logger.warning("[WARN] No database path configured")
+            return None
 
-        # Embedder
-        model_name = getattr(
-            getattr(config, "embedding", None), "model_name",
-            "all-MiniLM-L6-v2"
-        )
-        embedder = Embedder(model_name=model_name)
-        logger.info("[OK] Embedder loaded")
+        def _init_embedder():
+            _set_stage(app, "Embedder...")
+            model_name = getattr(
+                getattr(config, "embedding", None), "model_name",
+                "all-MiniLM-L6-v2"
+            )
+            e = Embedder(model_name=model_name)
+            logger.info("[OK] Embedder loaded")
+            return e
 
-        # LLM Router
-        router = LLMRouter(config)
-        logger.info("[OK] LLM router ready")
+        def _init_router():
+            _set_stage(app, "LLM Router...")
+            r = LLMRouter(config)
+            logger.info("[OK] LLM router ready")
+            return r
 
-        # Query Engine
-        if store:
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            fut_store = pool.submit(_init_store)
+            fut_embedder = pool.submit(_init_embedder)
+            fut_router = pool.submit(_init_router)
+
+            store = fut_store.result()
+            embedder = fut_embedder.result()
+            router = fut_router.result()
+
+        # -- Sequential phase: assemble QueryEngine + Indexer --
+        _set_stage(app, "QueryEngine...")
+        if store and embedder:
             query_engine = QueryEngine(config, store, embedder, router)
             logger.info("[OK] Query engine ready")
 
-        # Indexer
-        if store:
             chunker = Chunker(config)
             indexer = Indexer(config, store, embedder, chunker)
             logger.info("[OK] Indexer ready")
@@ -89,10 +117,13 @@ def _load_backends(app, logger):
         app.router = router
         if hasattr(app, "query_panel"):
             app.query_panel.query_engine = query_engine
+            app.query_panel.set_ready(query_engine is not None)
         if hasattr(app, "index_panel"):
             app.index_panel.indexer = indexer
+            app.index_panel.set_ready(indexer is not None)
         if hasattr(app, "status_bar"):
             app.status_bar.router = router
+            app.status_bar.set_ready()
             app.status_bar.force_refresh()
         logger.info("[OK] Backends attached to GUI")
 

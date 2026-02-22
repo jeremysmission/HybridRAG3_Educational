@@ -325,7 +325,7 @@ All packages sourced from PyPI (pypi.org) -- open-source with permissive license
 
 ### Getting Started
 - `docs/INSTALL_AND_SETUP.md` -- Complete installation and setup guide (Parts 1-10)
-- `docs/CHEAT_SHEET.md` -- Troubleshooting cheat sheet (setup, daily use, errors, scaling)
+- `docs/SHORTCUT_SHEET.md` -- Quick reference for setup, daily use, errors, and scaling
 
 ### User Guides
 - `docs/USER_GUIDE.md` -- End-user guide for CLI and daily workflows

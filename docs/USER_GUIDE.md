@@ -557,6 +557,6 @@ rag-paths              # Verify configured paths
 
 If diagnostics show failures you cannot resolve:
 
-1. Check the [CHEAT_SHEET.md](CHEAT_SHEET.md) for known issues
+1. Check the [SHORTCUT_SHEET.md](SHORTCUT_SHEET.md) for known issues
 2. Review the terminal output for `[FAIL]` messages with fix hints
 3. Run `rag-diag --verbose` and review the detailed report

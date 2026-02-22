@@ -179,6 +179,15 @@ class HybridRAGApp(tk.Tk):
         )
         self.theme_icon_label.pack(side=tk.RIGHT)
 
+        # -- Reset button (right side, before Theme) --
+        self.reset_btn = tk.Button(
+            self.title_frame, text="Reset", width=6, font=FONT,
+            command=self.reset_backends,
+            relief=tk.FLAT, bd=0, padx=6, pady=2,
+            bg=t["input_bg"], fg=t["fg"],
+        )
+        self.reset_btn.pack(side=tk.RIGHT, padx=(0, 8))
+
         # Set initial button colors
         self._update_mode_buttons()
 
@@ -229,6 +238,9 @@ class HybridRAGApp(tk.Tk):
             self.theme_btn.configure(text="Light", bg=t["input_bg"], fg=t["fg"])
         else:
             self.theme_btn.configure(text="Dark", bg=t["input_bg"], fg=t["fg"])
+
+        # Reset button
+        self.reset_btn.configure(bg=t["input_bg"], fg=t["fg"])
 
         self._update_mode_buttons()
 
@@ -353,6 +365,51 @@ class HybridRAGApp(tk.Tk):
         self._update_mode_buttons()
         self.status_bar.force_refresh()
         logger.info("Switched to OFFLINE mode")
+
+    # ----------------------------------------------------------------
+    # BACKEND RESET + READY STATE
+    # ----------------------------------------------------------------
+
+    def reset_backends(self):
+        """Tear down backends, show loading state, and reload in background."""
+        # Clear backend references
+        self.query_engine = None
+        self.indexer = None
+        self.router = None
+
+        # Propagate to panels
+        if hasattr(self, "query_panel"):
+            self.query_panel.query_engine = None
+            self.query_panel.set_ready(False)
+        if hasattr(self, "index_panel"):
+            self.index_panel.indexer = None
+            self.index_panel.set_ready(False)
+        if hasattr(self, "status_bar"):
+            self.status_bar.router = None
+            self.status_bar.set_loading_stage("Restarting...")
+            self.status_bar.force_refresh()
+
+        # Launch reload in a new daemon thread
+        from src.gui.launch_gui import _load_backends
+        reload_thread = threading.Thread(
+            target=_load_backends,
+            args=(self, logging.getLogger("gui_launcher")),
+            daemon=True,
+        )
+        reload_thread.start()
+        logger.info("Backend reset -- reloading in background")
+
+    def set_ready(self, enabled):
+        """Propagate ready state to all panels."""
+        if hasattr(self, "query_panel"):
+            self.query_panel.set_ready(enabled)
+        if hasattr(self, "index_panel"):
+            self.index_panel.set_ready(enabled)
+        if hasattr(self, "status_bar"):
+            if enabled:
+                self.status_bar.set_ready()
+            else:
+                self.status_bar.set_loading_stage("Loading...")
 
     # ----------------------------------------------------------------
     # ENGINEERING MENU
