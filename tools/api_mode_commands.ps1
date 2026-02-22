@@ -274,16 +274,4 @@ function rag-set-model {
 # STARTUP MESSAGE
 # ============================================================================
 
-Write-Host ""
-Write-Host "API + Profile Commands loaded:" -ForegroundColor Cyan
-Write-Host "  rag-set-model       Model selection wizard (recommended)" -ForegroundColor Yellow
-Write-Host "  rag-store-key       Store API key (encrypted)" -ForegroundColor DarkGray
-Write-Host "  rag-store-endpoint  Store custom API endpoint" -ForegroundColor DarkGray
-Write-Host "  rag-cred-status     Check credential status" -ForegroundColor DarkGray
-Write-Host "  rag-cred-delete     Remove stored credentials" -ForegroundColor DarkGray
-Write-Host "  rag-mode-online     Switch to online API mode (direct)" -ForegroundColor DarkGray
-Write-Host "  rag-mode-offline    Switch to offline AI mode (direct)" -ForegroundColor DarkGray
-Write-Host "  rag-models          Show all available AI models" -ForegroundColor DarkGray
-Write-Host "  rag-test-api        Test API connectivity" -ForegroundColor DarkGray
-Write-Host "  rag-profile         View/switch performance profile" -ForegroundColor DarkGray
-Write-Host ""
+Write-Host "[OK]  API + profile commands loaded" -ForegroundColor Green

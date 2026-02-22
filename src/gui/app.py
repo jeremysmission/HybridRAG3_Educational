@@ -371,8 +371,14 @@ class HybridRAGApp(tk.Tk):
     # ----------------------------------------------------------------
 
     def reset_backends(self):
-        """Tear down backends, show loading state, and reload in background."""
-        # Clear backend references
+        """Tear down backends, show loading state, and reload in background.
+
+        The Embedder is cached at module level in launch_gui.py so the
+        expensive model-load (~8s) is paid only once per process.  Reset
+        rebuilds VectorStore, Router, QueryEngine, and Indexer but reuses
+        the cached Embedder -- making Reset near-instant.
+        """
+        # Clear backend references (embedder stays in module cache)
         self.query_engine = None
         self.indexer = None
         self.router = None

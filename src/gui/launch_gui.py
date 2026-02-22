@@ -7,6 +7,15 @@
 # This ensures the user sees the window immediately instead of waiting
 # for heavy imports (torch, sentence-transformers) to finish.
 #
+# PERFORMANCE: The Embedder is the cold-start bottleneck (~16s on 8GB
+# laptop). Three tricks to minimize perceived wait:
+#   1. Eager preload -- start building the Embedder at t=0, BEFORE
+#      boot/config/GUI, so the 16s overlaps with the 2s of setup.
+#   2. Embedder cache -- keep the Embedder across Reset clicks so the
+#      7.6s model-load is paid only once per process lifetime.
+#   3. Warm encode -- fire a dummy encode() after load so the first
+#      real query pays zero lazy-init cost.
+#
 # INTERNET ACCESS: Depends on boot result and user mode selection.
 # ============================================================================
 
@@ -24,6 +33,81 @@ if _project_root not in sys.path:
 # Set HYBRIDRAG_PROJECT_ROOT if not already set
 if not os.environ.get("HYBRIDRAG_PROJECT_ROOT"):
     os.environ["HYBRIDRAG_PROJECT_ROOT"] = _project_root
+
+# ============================================================================
+# EAGER PRELOAD: start the heaviest work (import torch + sentence-transformers
+# + load model weights) immediately, before boot/config/GUI.  The result is
+# stashed in _preload_result and picked up by _load_backends() later.
+# On this laptop the overlap saves ~2s; on faster hardware the ratio is even
+# better because boot+config+GUI take longer relative to model-load time.
+# ============================================================================
+
+_preload_result = {}   # {"embedder": Embedder | None, "error": str | None}
+_preload_done = threading.Event()
+
+
+def _preload_embedder():
+    """Build the Embedder (torch + model weights) as early as possible."""
+    try:
+        from src.core.embedder import Embedder
+        e = Embedder()   # default model_name = "all-MiniLM-L6-v2"
+        # Warm encode: force any lazy init (tokenizer buffers, etc.)
+        e.embed_query("warmup")
+        _preload_result["embedder"] = e
+        _preload_result["error"] = None
+    except Exception as exc:
+        _preload_result["embedder"] = None
+        _preload_result["error"] = str(exc)
+    finally:
+        _preload_done.set()
+
+
+_preload_thread = threading.Thread(target=_preload_embedder, daemon=True)
+_preload_thread.start()
+
+# ============================================================================
+# Module-level embedder cache -- survives Reset clicks so the expensive
+# model-load is paid once per process.  _load_backends() stores the
+# Embedder here after first use; reset_backends() in app.py re-reads it.
+# ============================================================================
+
+_cached_embedder = None
+_cached_embedder_lock = threading.Lock()
+
+
+def _get_or_build_embedder(model_name, logger):
+    """Return a cached Embedder if model_name matches, else build a new one."""
+    global _cached_embedder
+
+    # Try the preload first (only blocks if preload is still running)
+    if not _preload_done.is_set():
+        logger.info("Waiting for eager preload to finish...")
+    _preload_done.wait()
+
+    with _cached_embedder_lock:
+        # Use cached if model matches
+        if (_cached_embedder is not None
+                and _cached_embedder.model is not None
+                and _cached_embedder.model_name == model_name):
+            logger.info("[OK] Embedder reused from cache")
+            return _cached_embedder
+
+        # Use preload result if model matches and cache is empty
+        preloaded = _preload_result.get("embedder")
+        if (preloaded is not None
+                and preloaded.model is not None
+                and preloaded.model_name == model_name):
+            _cached_embedder = preloaded
+            logger.info("[OK] Embedder loaded (from eager preload)")
+            return _cached_embedder
+
+        # Fallback: build fresh (different model_name or preload failed)
+        from src.core.embedder import Embedder
+        e = Embedder(model_name=model_name)
+        e.embed_query("warmup")
+        _cached_embedder = e
+        logger.info("[OK] Embedder loaded (fresh build)")
+        return _cached_embedder
 
 
 def _set_stage(app, stage_text):
@@ -49,11 +133,15 @@ def _load_backends(app, logger):
     try:
         logger.info("Loading backends (this may take a moment)...")
         from src.core.vector_store import VectorStore
-        from src.core.embedder import Embedder
         from src.core.llm_router import LLMRouter
         from src.core.query_engine import QueryEngine
         from src.core.chunker import Chunker
         from src.core.indexer import Indexer
+
+        model_name = getattr(
+            getattr(config, "embedding", None), "model_name",
+            "all-MiniLM-L6-v2"
+        )
 
         # -- Parallel phase: VectorStore, Embedder, LLMRouter --
         def _init_store():
@@ -74,13 +162,7 @@ def _load_backends(app, logger):
 
         def _init_embedder():
             _set_stage(app, "Embedder...")
-            model_name = getattr(
-                getattr(config, "embedding", None), "model_name",
-                "all-MiniLM-L6-v2"
-            )
-            e = Embedder(model_name=model_name)
-            logger.info("[OK] Embedder loaded")
-            return e
+            return _get_or_build_embedder(model_name, logger)
 
         def _init_router():
             _set_stage(app, "LLM Router...")
@@ -141,6 +223,10 @@ def main():
     )
     logger = logging.getLogger("gui_launcher")
 
+    # NOTE: _preload_thread is already running (started at module load).
+    # While we boot + load config + build the GUI (~2s), torch and the
+    # embedding model are loading in parallel.
+
     # -- Step 1: Boot the system (lightweight -- config + creds + gate) --
     logger.info("Booting HybridRAG...")
     boot_result = None
@@ -168,7 +254,7 @@ def main():
         from src.core.config import Config
         config = Config()
 
-    # -- Step 3: Open GUI immediately (no heavy imports yet) --
+    # -- Step 3: Open GUI immediately --
     logger.info("Opening GUI window...")
     from src.gui.app import HybridRAGApp
 
